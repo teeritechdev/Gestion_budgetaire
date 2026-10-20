@@ -1,0 +1,47 @@
+# === Maven ===
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!mvnw
+!mvnw.cmd
+
+# === Gradle ===
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradlew
+!gradlew.cmd
+
+# === Fichiers compilés Java ===
+*.class
+*.jar
+*.war
+*.ear
+
+# === Configuration & Secrets Spring Boot ===
+# (Décommentez si vous utilisez un application-local.properties pour vos mots de passe DB local)
+# application-local.properties
+# application-local.yml
+
+# === IDEs / Éditeurs ===
+# IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# === Logs et Sytème ===
+*.log
+.DS_Store
+Thumbs.db
