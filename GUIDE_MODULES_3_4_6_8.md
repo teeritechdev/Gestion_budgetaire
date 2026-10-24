@@ -260,6 +260,22 @@ Utilisées par la collection Postman pour préparer une ligne budgétaire : `POS
 - Un `GET /{id}` inconnu renvoie 404 sans corps ; les autres erreurs ont un `message` (section 3).
 - `@CrossOrigin(origins = "*")` est présent sur les contrôleurs : à restreindre avant la production.
 - Les modules 1 et 2 n'ont pas de tests unitaires.
+- **Secret dans le dépôt** : `backend/src/main/resources/application.yml` contient en clair le mot de passe PostgreSQL, et le dépôt GitHub
+  est public. Changer ce mot de passe s'il sert ailleurs qu'en local, et à terme le lire depuis une variable d'environnement
+  (fichier du module de configuration : à voir avec son propriétaire). Chacun adapte le mot de passe à sa machine sans le recommiter.
+
+## Reste à faire (hors des modules 3, 4, 6, 8)
+
+| # | Point | Qui |
+|---|---|---|
+| 1 | Corriger la fuite de `motDePasseHash` (renvoyer des DTO au lieu des entités) et le mot de passe passé dans l'URL | Développeur A |
+| 2 | Aligner les noms de routes, routes manquantes, filtres et pagination des modules 1 et 2 sur le PDF (section 10) | Développeur A |
+| 3 | Décider du préfixe `/api/v1` pour tous les modules, avant le démarrage du frontend | Équipe |
+| 4 | Remplacer `BudgetReservationProvisoire` par le service d'engagement budgétaire de A (`@Primary`) | Développeur A |
+| 5 | Appliquer `module4_quantites_decimales.sql` sur chaque base existante (section 2) | Chaque développeur |
+| 6 | Déplacer le mot de passe de la base hors d'`application.yml` | Équipe |
+| 7 | Modules 5 (réceptions) et 7 (comptabilité) : voir `backend/docs/INTEGRATION_MODULES_5_7.md` | À venir |
+| 8 | Restreindre `@CrossOrigin(origins = "*")` avant la production | Équipe |
 
 ## 11. Consignes pour les agents IA et nouveaux contributeurs
 
