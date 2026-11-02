@@ -1,5 +1,6 @@
 package com.budget.backend.security.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.security.entity.AuditLog;
 import com.budget.backend.security.repository.AuditLogRepository;
 import com.lowagie.text.Document;
@@ -48,23 +49,27 @@ public class AuditLogService {
 
     // --- Export CSV ---
     public String exporterEnCsv(UUID utilisateurId, String typeAction, String nomTable, LocalDateTime startDate, LocalDateTime endDate) {
-        List<AuditLog> logs = filtrerAuditLogs(utilisateurId, typeAction, nomTable, startDate, endDate);
+        return exporterEnCsv(filtrerAuditLogs(utilisateurId, typeAction, nomTable, startDate, endDate));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<AuditLog> logs) {
         StringBuilder csv = new StringBuilder("ID;UtilisateurID;TypeAction;NomTable;EnregistrementID;AdresseIP;Date\n");
         for (AuditLog log : logs) {
-            csv.append(log.getId()).append(";")
-                    .append(log.getUtilisateurId() != null ? log.getUtilisateurId() : "SYSTEM").append(";")
-                    .append(log.getTypeAction()).append(";")
-                    .append(log.getNomTable()).append(";")
-                    .append(log.getEnregistrementId()).append(";")
-                    .append(log.getAdresseIp() != null ? log.getAdresseIp() : "").append(";")
-                    .append(log.getCreatedAt()).append("\n");
+            csv.append(CsvUtils.ligne(';', log.getId(), log.getUtilisateurId() != null ? log.getUtilisateurId() : "SYSTEM",
+                    log.getTypeAction(), log.getNomTable(), log.getEnregistrementId(), log.getAdresseIp(),
+                    log.getCreatedAt()));
         }
         return csv.toString();
     }
 
     // --- Export PDF ---
     public byte[] exporterEnPdf(UUID utilisateurId, String typeAction, String nomTable, LocalDateTime startDate, LocalDateTime endDate) {
-        List<AuditLog> logs = filtrerAuditLogs(utilisateurId, typeAction, nomTable, startDate, endDate);
+        return exporterEnPdf(filtrerAuditLogs(utilisateurId, typeAction, nomTable, startDate, endDate));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<AuditLog> logs) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {

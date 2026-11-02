@@ -17,11 +17,9 @@ import org.springframework.web.multipart.MultipartFile;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/structures")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class StructureController {
 
     @Autowired
@@ -33,65 +31,58 @@ public class StructureController {
     private String getUserIdFromAuth(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof User)) return null;
         User user = (User) authentication.getPrincipal();
-        return utilisateurRepository.findByEmail(user.getUsername())
+        return utilisateurRepository.findByUsername(user.getUsername())
                 .map(u -> u.getId().toString())
                 .orElse(null);
     }
 
     @GetMapping
-    @PreAuthorize("hasPermission(null, 'structure.lire')")
+    @PreAuthorize("hasPermission(null, 'entite.lire')")
     public ResponseEntity<List<Structure>> listerOuFiltrer(
-            @RequestParam(required = false) String entiteCode,
-            @RequestParam(required = false) String typeStructure,
-            @RequestParam(required = false) Boolean actif,
-            @RequestParam(required = false) String libelle) {
-        if (entiteCode != null || typeStructure != null || actif != null || libelle != null) {
-            return ResponseEntity.ok(structureService.filtrerStructures(entiteCode, typeStructure, actif, libelle));
+            @RequestParam(required = false) String nom) {
+        if (nom != null) {
+            return ResponseEntity.ok(structureService.filtrerStructures(nom));
         }
         return ResponseEntity.ok(structureService.listerToutesLesStructures());
     }
 
-    @GetMapping("/{id}")
-    @PreAuthorize("hasPermission(null, 'structure.lire')")
-    public ResponseEntity<Structure> obtenirParId(@PathVariable UUID id) {
-        return structureService.trouverParId(id)
+    @GetMapping("/{code}")
+    @PreAuthorize("hasPermission(null, 'entite.lire')")
+    public ResponseEntity<Structure> obtenirParCode(@PathVariable String code) {
+        return structureService.trouverParCode(code)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
-    @PreAuthorize("hasPermission(null, 'structure.creer')")
+    @PreAuthorize("hasPermission(null, 'entite.creer')")
     public ResponseEntity<Structure> creer(@RequestBody Structure structure, Authentication authentication) {
         String userId = getUserIdFromAuth(authentication);
         Structure nouvelleStructure = structureService.creerStructure(structure, userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(nouvelleStructure);
     }
 
-    @PutMapping("/{id}")
-    @PreAuthorize("hasPermission(null, 'structure.modifier')")
-    public ResponseEntity<Structure> modifier(@PathVariable UUID id, @RequestBody Structure structure, Authentication authentication) {
+    @PutMapping("/{code}")
+    @PreAuthorize("hasPermission(null, 'entite.modifier')")
+    public ResponseEntity<Structure> modifier(@PathVariable String code, @RequestBody Structure structure, Authentication authentication) {
         String userId = getUserIdFromAuth(authentication);
-        Structure structureModifiee = structureService.modifierStructure(id, structure, userId);
+        Structure structureModifiee = structureService.modifierStructure(code, structure, userId);
         return ResponseEntity.ok(structureModifiee);
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasPermission(null, 'structure.supprimer')")
-    public ResponseEntity<?> supprimer(@PathVariable UUID id, Authentication authentication) {
+    @DeleteMapping("/{code}")
+    @PreAuthorize("hasPermission(null, 'entite.supprimer')")
+    public ResponseEntity<?> supprimer(@PathVariable String code, Authentication authentication) {
         String userId = getUserIdFromAuth(authentication);
-        structureService.supprimerStructure(id, userId);
+        structureService.supprimerStructure(code, userId);
         return ResponseEntity.ok(Map.of("message", "Structure supprimée avec succès."));
     }
 
-    // --- Export CSV ---
     @GetMapping("/export/csv")
-    @PreAuthorize("hasPermission(null, 'structure.exporter')")
+    @PreAuthorize("hasPermission(null, 'entite.exporter')")
     public ResponseEntity<byte[]> exporterCsv(
-            @RequestParam(required = false) String entiteCode,
-            @RequestParam(required = false) String typeStructure,
-            @RequestParam(required = false) Boolean actif,
-            @RequestParam(required = false) String libelle) {
-        String csvData = structureService.exporterEnCsv(entiteCode, typeStructure, actif, libelle);
+            @RequestParam(required = false) String nom) {
+        String csvData = structureService.exporterEnCsv(nom);
         byte[] bytes = csvData.getBytes(StandardCharsets.UTF_8);
 
         HttpHeaders headers = new HttpHeaders();
@@ -101,24 +92,19 @@ public class StructureController {
         return new ResponseEntity<>(bytes, headers, HttpStatus.OK);
     }
 
-    // --- Import CSV ---
     @PostMapping("/import/csv")
-    @PreAuthorize("hasPermission(null, 'structure.importer')")
+    @PreAuthorize("hasPermission(null, 'entite.importer')")
     public ResponseEntity<?> importerCsv(@RequestParam("file") MultipartFile file, Authentication authentication) {
         String userId = getUserIdFromAuth(authentication);
         int nbImportes = structureService.importerCsv(file, userId);
-        return ResponseEntity.ok(Map.of("message", "Importation des structures réussie.", "elementsImportes", nbImportes));
+        return ResponseEntity.ok(Map.of("message", "Importation réussie.", "elementsImportes", nbImportes));
     }
 
-    // --- Export PDF ---
     @GetMapping("/export/pdf")
-    @PreAuthorize("hasPermission(null, 'structure.exporter')")
+    @PreAuthorize("hasPermission(null, 'entite.exporter')")
     public ResponseEntity<byte[]> exporterPdf(
-            @RequestParam(required = false) String entiteCode,
-            @RequestParam(required = false) String typeStructure,
-            @RequestParam(required = false) Boolean actif,
-            @RequestParam(required = false) String libelle) {
-        byte[] pdfBytes = structureService.exporterEnPdf(entiteCode, typeStructure, actif, libelle);
+            @RequestParam(required = false) String nom) {
+        byte[] pdfBytes = structureService.exporterEnPdf(nom);
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);

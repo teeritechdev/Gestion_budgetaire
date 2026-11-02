@@ -1,9 +1,12 @@
 package com.budget.backend.budget.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.budget.entity.*;
 import com.budget.backend.budget.repository.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
@@ -38,16 +41,24 @@ public class CascadeAllocationService {
 
     @Transactional
     public BudgetAllocationOs allouerExerciceVersOs(UUID exerciceId, UUID osId, BigDecimal montant) {
-        ExerciceBudgetaire exercice = exerciceRepository.findById(exerciceId)
-                .orElseThrow(() -> new RuntimeException("Exercice budgétaire introuvable"));
+        exigerIdentifiant(exerciceId, "L'exercice budgétaire est obligatoire.");
+        exigerIdentifiant(osId, "L'objectif stratégique est obligatoire.");
+        BudgetRules.verifierMontantPositif(montant, "montant alloué");
+
+        // Le verrou sur l'exercice sérialise les allocations concurrentes sur la même enveloppe.
+        ExerciceBudgetaire exercice = exerciceRepository.findByIdForUpdate(exerciceId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Exercice budgétaire introuvable"));
+        BudgetRules.verifierExerciceModifiable(exercice);
         ObjectifStrategique os = osRepository.findById(osId)
-                .orElseThrow(() -> new RuntimeException("Objectif stratégique introuvable"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Objectif stratégique introuvable"));
 
         BigDecimal totalActuel = allocationOsRepository.findByExerciceBudgetaireId(exerciceId)
-                .stream().map(BudgetAllocationOs::getMontantAlloue).reduce(BigDecimal.ZERO, BigDecimal::add);
+                .stream().map(BudgetAllocationOs::getMontantAlloue).map(BudgetRules::valeur)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (totalActuel.add(montant).compareTo(exercice.getMontantTotalVote()) > 0) {
-            throw new RuntimeException("Erreur : Le cumul des allocations OS dépasse l'enveloppe globale votée de l'exercice.");
+        if (totalActuel.add(montant).compareTo(BudgetRules.valeur(exercice.getMontantTotalVote())) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Erreur : Le cumul des allocations OS dépasse l'enveloppe globale votée de l'exercice.");
         }
 
         BudgetAllocationOs allocation = BudgetAllocationOs.builder()
@@ -68,19 +79,27 @@ public class CascadeAllocationService {
     }
 
     public String exporterOsCsv(UUID exerciceId, UUID osId) {
-        List<BudgetAllocationOs> list = filtrerAllocationsOs(exerciceId, osId);
+        return exporterOsCsv(filtrerAllocationsOs(exerciceId, osId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterOsCsv(List<BudgetAllocationOs> list) {
         StringBuilder sb = new StringBuilder("ID,Exercice Année,OS Code,Montant Alloué\n");
         for (BudgetAllocationOs a : list) {
-            sb.append(a.getId()).append(",")
-                    .append(a.getExerciceBudgetaire() != null ? a.getExerciceBudgetaire().getAnnee() : "").append(",")
-                    .append("\"").append(a.getObjectifStrategique() != null ? a.getObjectifStrategique().getCodeOs() : "").append("\",")
-                    .append(a.getMontantAlloue()).append("\n");
+            sb.append(CsvUtils.ligne(',', a.getId(),
+                    a.getExerciceBudgetaire() != null ? a.getExerciceBudgetaire().getAnnee() : null,
+                    a.getObjectifStrategique() != null ? a.getObjectifStrategique().getCodeOs() : "",
+                    a.getMontantAlloue()));
         }
         return sb.toString();
     }
 
     public byte[] exporterOsPdf(UUID exerciceId, UUID osId) {
-        List<BudgetAllocationOs> list = filtrerAllocationsOs(exerciceId, osId);
+        return exporterOsPdf(filtrerAllocationsOs(exerciceId, osId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterOsPdf(List<BudgetAllocationOs> list) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document doc = new com.lowagie.text.Document();
             com.lowagie.text.pdf.PdfWriter.getInstance(doc, out);
@@ -104,16 +123,23 @@ public class CascadeAllocationService {
 
     @Transactional
     public BudgetAllocationOp allouerOsVersOp(UUID allocationOsId, UUID opId, BigDecimal montant) {
-        BudgetAllocationOs parentOs = allocationOsRepository.findById(allocationOsId)
-                .orElseThrow(() -> new RuntimeException("Allocation OS parente introuvable"));
+        exigerIdentifiant(allocationOsId, "L'allocation OS parente est obligatoire.");
+        exigerIdentifiant(opId, "L'objectif opérationnel est obligatoire.");
+        BudgetRules.verifierMontantPositif(montant, "montant alloué");
+
+        BudgetAllocationOs parentOs = allocationOsRepository.findByIdForUpdate(allocationOsId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Allocation OS parente introuvable"));
+        BudgetRules.verifierExerciceModifiable(parentOs.getExerciceBudgetaire());
         ObjectifOperationnel op = opRepository.findById(opId)
-                .orElseThrow(() -> new RuntimeException("Objectif opérationnel introuvable"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Objectif opérationnel introuvable"));
 
         BigDecimal totalActuel = allocationOpRepository.findByBudgetAllocationOsId(allocationOsId)
-                .stream().map(BudgetAllocationOp::getMontantAlloue).reduce(BigDecimal.ZERO, BigDecimal::add);
+                .stream().map(BudgetAllocationOp::getMontantAlloue).map(BudgetRules::valeur)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (totalActuel.add(montant).compareTo(parentOs.getMontantAlloue()) > 0) {
-            throw new RuntimeException("Erreur : Le cumul des allocations OP dépasse l'enveloppe allouée à cet OS.");
+        if (totalActuel.add(montant).compareTo(BudgetRules.valeur(parentOs.getMontantAlloue())) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Erreur : Le cumul des allocations OP dépasse l'enveloppe allouée à cet OS.");
         }
 
         BudgetAllocationOp allocation = BudgetAllocationOp.builder()
@@ -134,19 +160,27 @@ public class CascadeAllocationService {
     }
 
     public String exporterOpCsv(UUID allocationOsId, UUID opId) {
-        List<BudgetAllocationOp> list = filtrerAllocationsOp(allocationOsId, opId);
+        return exporterOpCsv(filtrerAllocationsOp(allocationOsId, opId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterOpCsv(List<BudgetAllocationOp> list) {
         StringBuilder sb = new StringBuilder("ID,Allocation OS ID,OP Code,Montant Alloué\n");
         for (BudgetAllocationOp a : list) {
-            sb.append(a.getId()).append(",")
-                    .append(a.getBudgetAllocationOs() != null ? a.getBudgetAllocationOs().getId() : "").append(",")
-                    .append("\"").append(a.getObjectifOperationnel() != null ? a.getObjectifOperationnel().getCodeOp() : "").append("\",")
-                    .append(a.getMontantAlloue()).append("\n");
+            sb.append(CsvUtils.ligne(',', a.getId(),
+                    a.getBudgetAllocationOs() != null ? a.getBudgetAllocationOs().getId() : null,
+                    a.getObjectifOperationnel() != null ? a.getObjectifOperationnel().getCodeOp() : "",
+                    a.getMontantAlloue()));
         }
         return sb.toString();
     }
 
     public byte[] exporterOpPdf(UUID allocationOsId, UUID opId) {
-        List<BudgetAllocationOp> list = filtrerAllocationsOp(allocationOsId, opId);
+        return exporterOpPdf(filtrerAllocationsOp(allocationOsId, opId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterOpPdf(List<BudgetAllocationOp> list) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document doc = new com.lowagie.text.Document();
             com.lowagie.text.pdf.PdfWriter.getInstance(doc, out);
@@ -170,16 +204,24 @@ public class CascadeAllocationService {
 
     @Transactional
     public BudgetAllocationActivite allouerOpVersActivite(UUID allocationOpId, UUID activiteCatalogueId, BigDecimal montant) {
-        BudgetAllocationOp parentOp = allocationOpRepository.findById(allocationOpId)
-                .orElseThrow(() -> new RuntimeException("Allocation OP parente introuvable"));
+        exigerIdentifiant(allocationOpId, "L'allocation OP parente est obligatoire.");
+        exigerIdentifiant(activiteCatalogueId, "L'activité du catalogue est obligatoire.");
+        BudgetRules.verifierMontantPositif(montant, "montant alloué");
+
+        BudgetAllocationOp parentOp = allocationOpRepository.findByIdForUpdate(allocationOpId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Allocation OP parente introuvable"));
+        BudgetRules.verifierExerciceModifiable(parentOp.getBudgetAllocationOs() == null
+                ? null : parentOp.getBudgetAllocationOs().getExerciceBudgetaire());
         ActiviteCatalogue activite = activiteCatalogueRepository.findById(activiteCatalogueId)
-                .orElseThrow(() -> new RuntimeException("Activité catalogue introuvable"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Activité catalogue introuvable"));
 
         BigDecimal totalActuel = allocationActiviteRepository.findByBudgetAllocationOpId(allocationOpId)
-                .stream().map(BudgetAllocationActivite::getMontantAlloue).reduce(BigDecimal.ZERO, BigDecimal::add);
+                .stream().map(BudgetAllocationActivite::getMontantAlloue).map(BudgetRules::valeur)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        if (totalActuel.add(montant).compareTo(parentOp.getMontantAlloue()) > 0) {
-            throw new RuntimeException("Erreur : Le cumul des allocations d'activités dépasse l'enveloppe allouée à cet OP.");
+        if (totalActuel.add(montant).compareTo(BudgetRules.valeur(parentOp.getMontantAlloue())) > 0) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Erreur : Le cumul des allocations d'activités dépasse l'enveloppe allouée à cet OP.");
         }
 
         BudgetAllocationActivite allocation = BudgetAllocationActivite.builder()
@@ -200,19 +242,27 @@ public class CascadeAllocationService {
     }
 
     public String exporterActiviteCsv(UUID allocationOpId, UUID activiteCatalogueId) {
-        List<BudgetAllocationActivite> list = filtrerAllocationsActivite(allocationOpId, activiteCatalogueId);
+        return exporterActiviteCsv(filtrerAllocationsActivite(allocationOpId, activiteCatalogueId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterActiviteCsv(List<BudgetAllocationActivite> list) {
         StringBuilder sb = new StringBuilder("ID,Allocation OP ID,Activité Code,Montant Alloué\n");
         for (BudgetAllocationActivite a : list) {
-            sb.append(a.getId()).append(",")
-                    .append(a.getBudgetAllocationOp() != null ? a.getBudgetAllocationOp().getId() : "").append(",")
-                    .append("\"").append(a.getActiviteCatalogue() != null ? a.getActiviteCatalogue().getCodeActivite() : "").append("\",")
-                    .append(a.getMontantAlloue()).append("\n");
+            sb.append(CsvUtils.ligne(',', a.getId(),
+                    a.getBudgetAllocationOp() != null ? a.getBudgetAllocationOp().getId() : null,
+                    a.getActiviteCatalogue() != null ? a.getActiviteCatalogue().getCodeActivite() : "",
+                    a.getMontantAlloue()));
         }
         return sb.toString();
     }
 
     public byte[] exporterActivitePdf(UUID allocationOpId, UUID activiteCatalogueId) {
-        List<BudgetAllocationActivite> list = filtrerAllocationsActivite(allocationOpId, activiteCatalogueId);
+        return exporterActivitePdf(filtrerAllocationsActivite(allocationOpId, activiteCatalogueId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterActivitePdf(List<BudgetAllocationActivite> list) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document doc = new com.lowagie.text.Document();
             com.lowagie.text.pdf.PdfWriter.getInstance(doc, out);
@@ -228,5 +278,11 @@ public class CascadeAllocationService {
             doc.add(table); doc.close();
             return out.toByteArray();
         } catch (Exception e) { throw new RuntimeException("Erreur PDF", e); }
+    }
+
+    private static void exigerIdentifiant(UUID id, String message) {
+        if (id == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, message);
+        }
     }
 }

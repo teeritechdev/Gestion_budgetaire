@@ -1,5 +1,6 @@
 package com.budget.backend.security.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.security.entity.Permission;
 import com.budget.backend.security.entity.Role;
 import com.budget.backend.security.repository.PermissionRepository;
@@ -13,7 +14,10 @@ import com.lowagie.text.Paragraph;
 import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import com.budget.backend.security.security.PrivilegeGuard;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -41,6 +45,9 @@ public class RoleService {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private PrivilegeGuard privilegeGuard;
+
     // --- CRUD : Lecture ---
     public List<Role> listerTousLesRoles() {
         return roleRepository.findAll();
@@ -65,8 +72,12 @@ public class RoleService {
             throw new RuntimeException("Un rôle avec le code '" + role.getCode() + "' existe déjà.");
         }
 
+        if (PrivilegeGuard.ROLE_ADMIN_SYSTEME.equalsIgnoreCase(role.getCode())) {
+            privilegeGuard.verifierPeutGererRole(role);
+        }
         if (permissionIds != null && !permissionIds.isEmpty()) {
             Set<Permission> permissions = new HashSet<>(permissionRepository.findAllById(permissionIds));
+            privilegeGuard.verifierPermissionsDetenues(permissions);
             role.setPermissions(permissions);
         }
 
@@ -90,6 +101,7 @@ public class RoleService {
     public Role modifierRole(UUID id, Role nouvellesDonnees, List<UUID> permissionIds, String utilisateurIdStr) {
         Role existant = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rôle introuvable avec l'id : " + id));
+        privilegeGuard.verifierPeutGererRole(existant);
 
         Map<String, Object> anciennesValeurs = Map.of(
                 "code", existant.getCode(),
@@ -101,6 +113,7 @@ public class RoleService {
 
         if (permissionIds != null) {
             Set<Permission> permissions = new HashSet<>(permissionRepository.findAllById(permissionIds));
+            privilegeGuard.verifierPermissionsDetenues(permissions);
             existant.setPermissions(permissions);
         }
 
@@ -124,6 +137,10 @@ public class RoleService {
     public void supprimerRole(UUID id, String utilisateurIdStr) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Rôle introuvable avec l'id : " + id));
+        privilegeGuard.verifierPeutGererRole(role);
+        if (PrivilegeGuard.ROLE_ADMIN_SYSTEME.equalsIgnoreCase(role.getCode())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Le rôle ADMIN_SYSTEME ne peut pas être supprimé.");
+        }
 
         roleRepository.delete(role);
 
@@ -141,21 +158,25 @@ public class RoleService {
 
     // --- Export CSV ---
     public String exporterEnCsv(String code, String libelle) {
-        List<Role> roles = filtrerRoles(code, libelle);
+        return exporterEnCsv(filtrerRoles(code, libelle));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<Role> roles) {
         StringBuilder csv = new StringBuilder("ID;Code;Libelle;Description;Date_Creation\n");
         for (Role r : roles) {
-            csv.append(r.getId()).append(";")
-                    .append(r.getCode()).append(";")
-                    .append(r.getLibelle()).append(";")
-                    .append(r.getDescription() != null ? r.getDescription().replace(";", ",") : "").append(";")
-                    .append(r.getCreatedAt()).append("\n");
+            csv.append(CsvUtils.ligne(';', r.getId(), r.getCode(), r.getLibelle(), r.getDescription(), r.getCreatedAt()));
         }
         return csv.toString();
     }
 
     // --- Export PDF ---
     public byte[] exporterEnPdf(String code, String libelle) {
-        List<Role> roles = filtrerRoles(code, libelle);
+        return exporterEnPdf(filtrerRoles(code, libelle));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<Role> roles) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {

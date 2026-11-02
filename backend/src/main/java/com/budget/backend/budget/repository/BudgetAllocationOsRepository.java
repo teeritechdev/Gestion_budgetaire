@@ -7,9 +7,19 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.Optional;
+import org.springframework.data.repository.query.Param;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.jpa.repository.Lock;
+import jakarta.persistence.LockModeType;
 
 @Repository
 public interface BudgetAllocationOsRepository extends JpaRepository<BudgetAllocationOs, UUID>, JpaSpecificationExecutor<BudgetAllocationOs> {
     List<BudgetAllocationOs> findByExerciceBudgetaireId(UUID exerciceId);
     List<BudgetAllocationOs> findByObjectifStrategiqueId(UUID osId);
+
+    // Verrou pessimiste : sérialise les allocations concurrentes sur la même enveloppe parente.
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select e from BudgetAllocationOs e where e.id = :id")
+    Optional<BudgetAllocationOs> findByIdForUpdate(@Param("id") UUID id);
 }

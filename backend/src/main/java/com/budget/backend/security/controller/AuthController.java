@@ -5,25 +5,33 @@ import com.budget.backend.security.dto.LoginRequest;
 import com.budget.backend.security.entity.Utilisateur;
 import com.budget.backend.security.repository.UtilisateurRepository;
 import com.budget.backend.security.security.JwtUtils;
+import com.budget.backend.security.security.LoginAttemptService;
+import com.budget.backend.security.security.TokenRevocationService;
 import com.budget.backend.security.service.AuditService;
+import io.jsonwebtoken.Claims;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.User;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthController {
 
     @Autowired
@@ -38,19 +46,49 @@ public class AuthController {
     @Autowired
     private AuditService auditService;
 
+    @Autowired
+    private LoginAttemptService loginAttemptService;
+
+    @Autowired
+    private TokenRevocationService tokenRevocationService;
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        String username = loginRequest.getUsername();
+        if (loginAttemptService.estBloque(username)) {
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
+                    "Trop de tentatives de connexion échouées. Réessayez dans quelques minutes.");
+        }
+
         // Authentification via Spring Security
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword())
-        );
+        Authentication authentication;
+        try {
+            authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, loginRequest.getPassword())
+            );
+        } catch (AuthenticationException exception) {
+            loginAttemptService.echec(username);
+            UUID utilisateurId = utilisateurRepository.findByUsername(username)
+                    .map(Utilisateur::getId)
+                    .orElse(null);
+            auditService.logAction(
+                    utilisateurId,
+                    "CONNEXION_ECHEC",
+                    "utilisateurs",
+                    utilisateurId != null ? utilisateurId.toString() : "inconnu",
+                    null,
+                    Map.of("username", username == null ? "" : username, "statut", "echec")
+            );
+            throw exception;
+        }
+        loginAttemptService.succes(username);
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
 
         User userDetails = (User) authentication.getPrincipal();
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("Erreur: Utilisateur introuvable."));
+        Utilisateur utilisateur = utilisateurRepository.findByUsername(userDetails.getUsername())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur introuvable."));
 
         // Enregistrement de l'audit de connexion dans la base de données
         auditService.logAction(
@@ -59,7 +97,7 @@ public class AuthController {
                 "utilisateurs",
                 utilisateur.getId().toString(),
                 null,
-                Map.of("email", utilisateur.getEmail(), "statut", "succes")
+                Map.of("username", utilisateur.getUsername(), "statut", "succes")
         );
 
         List<String> permissions = userDetails.getAuthorities().stream()
@@ -70,18 +108,26 @@ public class AuthController {
                 jwt,
                 "Bearer",
                 utilisateur.getId(),
-                utilisateur.getEmail(),
-                utilisateur.getNom(),
-                utilisateur.getPrenom(),
+                utilisateur.getUsername(),
+                utilisateur.getSalarie().getEmail(),
+                utilisateur.getSalarie().getNom(),
+                utilisateur.getSalarie().getPrenom(),
                 utilisateur.getRole().getCode(),
                 permissions
         ));
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logoutUser() {
-        // En mode JWT stateless, le logout se gère principalement côté client (suppression du token).
-        // On nettoie le contexte de sécurité du serveur pour la requête en cours.
+    public ResponseEntity<?> logoutUser(HttpServletRequest request) {
+        // Le token présenté est révoqué jusqu'à son expiration : il ne peut plus être réutilisé.
+        String headerAuth = request.getHeader("Authorization");
+        if (StringUtils.hasText(headerAuth) && headerAuth.startsWith("Bearer ")) {
+            String jwt = headerAuth.substring(7);
+            if (jwtUtils.validateJwtToken(jwt)) {
+                Claims claims = jwtUtils.getClaims(jwt);
+                tokenRevocationService.revoquer(claims.getId(), claims.getExpiration().toInstant());
+            }
+        }
         SecurityContextHolder.clearContext();
 
         Map<String, String> response = new HashMap<>();

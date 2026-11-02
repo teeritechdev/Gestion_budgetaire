@@ -17,7 +17,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/allocations-activites")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AllocationActiviteController {
 
     @Autowired

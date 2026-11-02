@@ -5,8 +5,10 @@ import com.budget.backend.budget.entity.PlanStrategique;
 import com.budget.backend.budget.repository.ExerciceBudgetaireRepository;
 import com.budget.backend.budget.repository.PlanStrategiqueRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -35,22 +37,16 @@ public class ExerciceBudgetaireService {
     @Transactional
     public ExerciceBudgetaire creer(UUID planId, ExerciceBudgetaire exercice) {
         if (repository.existsByAnnee(exercice.getAnnee())) {
-            throw new RuntimeException("Un exercice budgétaire existe déjà pour l'année : " + exercice.getAnnee());
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Un exercice budgétaire existe déjà pour l'année : " + exercice.getAnnee());
         }
 
         PlanStrategique plan = planRepository.findById(planId)
-                .orElseThrow(() -> new RuntimeException("Plan stratégique introuvable avec l'ID : " + planId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Plan budgétaire introuvable avec l'ID : " + planId));
 
-        int anneeDebut = plan.getDateDebut().getYear();
-        int anneeFin = plan.getDateFin().getYear();
-
-        // Règle de gestion : l'année doit être comprise dans la période du plan stratégique
-        if (exercice.getAnnee() < anneeDebut || exercice.getAnnee() > anneeFin) {
-            throw new IllegalArgumentException(
-                    String.format("L'année de l'exercice (%d) n'est pas comprise dans la période du plan stratégique (%d - %d).",
-                            exercice.getAnnee(), anneeDebut, anneeFin)
-            );
-        }
+        validerAnneeDansPeriode(exercice.getAnnee(), plan);
 
         exercice.setPlanStrategique(plan);
         if (exercice.getStatut() == null) {
@@ -62,21 +58,14 @@ public class ExerciceBudgetaireService {
     @Transactional
     public ExerciceBudgetaire modifier(UUID id, UUID planId, ExerciceBudgetaire details) {
         ExerciceBudgetaire exercice = repository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Exercice budgétaire introuvable avec l'ID : " + id));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Exercice budgétaire introuvable avec l'ID : " + id));
 
         PlanStrategique plan = planRepository.findById(planId)
-                .orElseThrow(() -> new RuntimeException("Plan stratégique introuvable avec l'ID : " + planId));
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Plan budgétaire introuvable avec l'ID : " + planId));
 
-        int anneeDebut = plan.getDateDebut().getYear();
-        int anneeFin = plan.getDateFin().getYear();
-
-        // Règle de gestion : vérification lors de la modification
-        if (details.getAnnee() < anneeDebut || details.getAnnee() > anneeFin) {
-            throw new IllegalArgumentException(
-                    String.format("L'année de l'exercice (%d) n'est pas comprise dans la période du plan stratégique (%d - %d).",
-                            details.getAnnee(), anneeDebut, anneeFin)
-            );
-        }
+        validerAnneeDansPeriode(details.getAnnee(), plan);
 
         exercice.setAnnee(details.getAnnee());
         exercice.setPlanStrategique(plan);
@@ -91,9 +80,31 @@ public class ExerciceBudgetaireService {
     @Transactional
     public void supprimer(UUID id) {
         if (!repository.existsById(id)) {
-            throw new RuntimeException("Exercice budgétaire introuvable avec l'ID : " + id);
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND, "Exercice budgétaire introuvable avec l'ID : " + id);
         }
         repository.deleteById(id);
+    }
+
+    private void validerAnneeDansPeriode(Integer annee, PlanStrategique plan) {
+        if (annee == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "L'année de l'exercice est obligatoire.");
+        }
+        if (plan.getDateDebut() == null || plan.getDateFin() == null) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    "Le plan budgétaire sélectionné doit avoir une date de début et une date de fin.");
+        }
+
+        int anneeDebut = plan.getDateDebut().getYear();
+        int anneeFin = plan.getDateFin().getYear();
+        if (annee < anneeDebut || annee > anneeFin) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST,
+                    String.format(
+                            "L'année de l'exercice (%d) n'est pas comprise dans la période du plan budgétaire (%d - %d). Modifiez les dates du plan ou choisissez une année comprise dans cette période.",
+                            annee, anneeDebut, anneeFin));
+        }
     }
 
     // Filtrage multicritères dynamique
@@ -115,7 +126,11 @@ public class ExerciceBudgetaireService {
 
     // Export CSV avec filtres
     public String exporterEnCsv(Integer annee, String statut, UUID planId) {
-        List<ExerciceBudgetaire> list = filtrerExercices(annee, statut, planId);
+        return exporterEnCsv(filtrerExercices(annee, statut, planId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<ExerciceBudgetaire> list) {
         StringBuilder sb = new StringBuilder();
         sb.append("ID,Année,Statut,Montant Total Voté,Date Ouverture,Date Fermeture,Code Plan\n");
         for (ExerciceBudgetaire e : list) {
@@ -132,7 +147,11 @@ public class ExerciceBudgetaireService {
 
     // Export PDF avec filtres (OpenPDF)
     public byte[] exporterEnPdf(Integer annee, String statut, UUID planId) {
-        List<ExerciceBudgetaire> list = filtrerExercices(annee, statut, planId);
+        return exporterEnPdf(filtrerExercices(annee, statut, planId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<ExerciceBudgetaire> list) {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document();

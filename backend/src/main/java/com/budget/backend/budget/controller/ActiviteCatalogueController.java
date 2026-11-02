@@ -17,7 +17,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/activites-catalogue")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class ActiviteCatalogueController {
 
     @Autowired

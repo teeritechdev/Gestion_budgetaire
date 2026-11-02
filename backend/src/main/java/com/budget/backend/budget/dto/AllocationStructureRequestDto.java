@@ -7,6 +7,6 @@ import java.util.UUID;
 @Data
 public class AllocationStructureRequestDto {
     private UUID allocationActiviteId;
-    private UUID structureId;
+    private String structureCode;
     private BigDecimal montantVote;
 }

@@ -3,21 +3,27 @@ package com.budget.backend.budget.controller;
 import com.budget.backend.budget.dto.PlanStrategiqueRequestDto;
 import com.budget.backend.budget.entity.PlanStrategique;
 import com.budget.backend.budget.service.PlanStrategiqueService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/plans-strategiques")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class PlanStrategiqueController {
 
     @Autowired
@@ -46,7 +52,7 @@ public class PlanStrategiqueController {
 
     @PostMapping
     @PreAuthorize("hasPermission(null, 'plan.creer')")
-    public ResponseEntity<PlanStrategique> creer(@RequestBody PlanStrategiqueRequestDto dto) {
+    public ResponseEntity<PlanStrategique> creer(@Valid @RequestBody PlanStrategiqueRequestDto dto) {
         PlanStrategique plan = PlanStrategique.builder()
                 .codePlan(dto.getCodePlan())
                 .libelle(dto.getLibelle())
@@ -60,7 +66,8 @@ public class PlanStrategiqueController {
 
     @PutMapping("/{id}")
     @PreAuthorize("hasPermission(null, 'plan.modifier')")
-    public ResponseEntity<PlanStrategique> modifier(@PathVariable UUID id, @RequestBody PlanStrategiqueRequestDto dto) {
+    public ResponseEntity<PlanStrategique> modifier(
+            @PathVariable UUID id, @Valid @RequestBody PlanStrategiqueRequestDto dto) {
         PlanStrategique details = PlanStrategique.builder()
                 .codePlan(dto.getCodePlan())
                 .libelle(dto.getLibelle())
@@ -109,5 +116,31 @@ public class PlanStrategiqueController {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "plans_strategiques_export.pdf");
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Map<String, Object>> gererValidation(MethodArgumentNotValidException exception) {
+        Map<String, String> erreurs = new LinkedHashMap<>();
+        for (FieldError fieldError : exception.getBindingResult().getFieldErrors()) {
+            erreurs.putIfAbsent(fieldError.getField(), fieldError.getDefaultMessage());
+        }
+        return ResponseEntity.badRequest().body(Map.of(
+                "message", "Les données du plan budgétaire sont invalides.",
+                "errors", erreurs));
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> gererErreurMetier(ResponseStatusException exception) {
+        String message = exception.getReason() == null
+                ? "L’opération sur le plan budgétaire a échoué."
+                : exception.getReason();
+        return ResponseEntity.status(exception.getStatusCode()).body(Map.of("message", message));
+    }
+
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, String>> gererConflitIntegrite() {
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "message",
+                "Le plan n’a pas pu être enregistré : son code doit être unique et il ne doit pas être utilisé par un autre élément."));
     }
 }

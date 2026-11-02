@@ -1,0 +1,265 @@
+/* You can add global styles to this file, and also import other style files */
+
+@import 'tailwindcss';
+
+:root {
+  color-scheme: light;
+  font-family: 'Segoe UI Variable', Aptos, Inter, 'Segoe UI', Arial, sans-serif;
+  font-size: 16px;
+  color: #18324f;
+  background: #f4f7fb;
+}
+
+html,
+body {
+  min-height: 100%;
+  margin: 0;
+  background: #f4f7fb;
+  color: #18324f;
+}
+
+body {
+  font-size: 1rem;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Readable defaults for compact Tailwind sizes used throughout the screens. */
+[class~="text-[9px]"],
+[class~="text-[10px]"],
+[class~="text-[11px]"] {
+  font-size: 0.875rem !important;
+  line-height: 1.35rem !important;
+}
+
+[class~="text-xs"] {
+  font-size: 0.9375rem !important;
+  line-height: 1.45rem !important;
+}
+
+[class~="text-sm"] {
+  font-size: 1rem !important;
+  line-height: 1.6rem !important;
+}
+
+/* Quiet surfaces and consistent borders. */
+[class~="bg-slate-50"] { background-color: #f4f7fb !important; }
+[class~="bg-white"] { background-color: #fff !important; }
+[class~="bg-slate-100"] { background-color: #edf2f8 !important; }
+[class~="border-slate-200"] { border-color: #dce4ee !important; }
+[class~="border-slate-300"] { border-color: #cbd6e3 !important; }
+[class~="text-white"],
+[class~="text-slate-900"] { color: #18324f !important; }
+[class~="text-slate-800"] { color: #253f5d !important; }
+[class~="text-slate-700"] { color: #3d536d !important; }
+[class~="text-slate-600"] { color: #586b81 !important; }
+
+/* Blue is the single interface accent; filled actions keep high contrast. */
+[class~="text-blue-200"],
+[class~="text-blue-300"],
+[class~="text-blue-400"],
+[class~="text-blue-500"] { color: #2468a8 !important; }
+button[class~="text-white"],
+a[class~="text-white"],
+button[class~="bg-blue-600"],
+button[class~="bg-blue-700"],
+a[class~="bg-blue-600"],
+a[class~="bg-blue-700"],
+button[class~="text-white"] [class~="text-white"] { color: #fff !important; }
+[class~="bg-blue-600"] [class~="text-white"],
+[class~="bg-blue-700"] [class~="text-white"] { color: #fff !important; }
+
+/* Lower pill and shadow intensity for a calmer, more formal interface. */
+[class~="rounded-3xl"] { border-radius: 1rem !important; }
+[class~="rounded-2xl"] { border-radius: 0.875rem !important; }
+[class~="rounded-xl"] { border-radius: 0.7rem !important; }
+[class~="shadow-2xl"],
+[class~="shadow-xl"],
+[class~="shadow-lg"] { box-shadow: 0 8px 20px rgb(20 43 70 / 8%) !important; }
+[class~="shadow-blue-500/30"],
+[class~="shadow-blue-600/30"] { box-shadow: 0 3px 10px rgb(37 99 235 / 12%) !important; }
+
+button,
+input,
+select,
+textarea { font: inherit; }
+
+input[type="date"] {
+  color-scheme: light;
+  color: #18324f;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+}
+
+button:not(:disabled),
+a[routerLink] { transition: background-color 140ms ease, color 140ms ease, border-color 140ms ease; }
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+a:focus-visible {
+  outline: 3px solid rgb(37 112 184 / 30%);
+  outline-offset: 2px;
+}
+
+.sidebar-brand {
+  background-color: #15803d !important;
+  color: #fff !important;
+}
+
+.sidebar-brand * {
+  color: #fff !important;
+}
+
+.sidebar-brand p:last-child {
+  color: #dcfce7 !important;
+}
+
+.brand-mark {
+  color: #15803d !important;
+  background-color: #fff !important;
+}
+
+.stats-grid > * {
+  border-left: 4px solid #16a34a !important;
+}
+
+.app-header {
+  background-color: #15803d !important;
+  border-bottom-color: #14532d !important;
+  color: #fff !important;
+}
+
+.app-header * {
+  color: #fff !important;
+}
+
+.app-header button {
+  border-color: rgb(255 255 255 / 35%) !important;
+}
+
+a.router-link-active {
+  color: #fff !important;
+  background-color: #15803d !important;
+}
+
+a.router-link-active span {
+  color: #fff !important;
+}
+
+aside nav a:hover {
+  background-color: #15803d !important;
+  color: #fff !important;
+}
+
+aside nav a:hover span {
+  color: #fff !important;
+}
+
+.action-toolbar {
+  flex-wrap: nowrap !important;
+  white-space: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.action-toolbar > * {
+  flex: 0 0 auto;
+}
+
+.sidebar-nav-icon {
+  flex: 0 0 1.5rem;
+  font-size: 1.3rem;
+  line-height: 1;
+}
+
+.dashboard-welcome {
+  background-color: #14532d !important;
+  border-color: #052e16 !important;
+}
+
+.dashboard-welcome h1 {
+  color: #fff !important;
+}
+
+.dashboard-welcome .text-green-100 {
+  color: #dcfce7 !important;
+}
+
+.dashboard-welcome .text-green-50 {
+  color: #f0fdf4 !important;
+}
+
+/* Formulaires en pleine page (app-form-page). */
+.form-page-card {
+  background-color: #fff;
+  border: 1px solid #dce4ee;
+  border-radius: 0.875rem;
+  padding: 1.5rem;
+}
+
+.form-page-body form > section,
+.form-page-body .form-page-section {
+  background-color: #fff;
+  border: 1px solid #dce4ee !important;
+  border-radius: 0.875rem;
+  padding: 1.5rem !important;
+}
+
+.form-page-body form > section + section {
+  margin-top: 1.25rem;
+}
+
+.form-page-body form > section h3,
+.form-page-body form > section h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #18324f;
+}
+
+/* Barre d'actions toujours visible en bas de l'écran. */
+.form-page-actions {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin: 1.5rem -0.25rem 0;
+  padding: 1rem 1.25rem;
+  background-color: #fff;
+  border: 1px solid #dce4ee;
+  border-radius: 0.875rem;
+  box-shadow: 0 -6px 16px rgb(20 43 70 / 6%);
+}
+
+.form-page-actions button {
+  min-height: 2.5rem;
+  padding-left: 1.25rem !important;
+  padding-right: 1.25rem !important;
+}
+
+/* Sous-onglets de la barre latérale (ex. Nomenclature › OS / OP / AC). */
+.sidebar-subnav a.sidebar-subnav-active {
+  background-color: #dcfce7 !important;
+  color: #14532d !important;
+  box-shadow: inset 3px 0 0 #15803d;
+}
+
+.sidebar-subnav a:hover {
+  background-color: #bbf7d0 !important;
+  color: #14532d !important;
+}
+
+/* Icônes de la barre latérale : blanches sur l'onglet actif ou survolé. */
+aside nav a.bg-green-700 .sidebar-nav-icon,
+aside nav a:hover .sidebar-nav-icon {
+  color: #fff !important;
+}

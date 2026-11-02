@@ -16,7 +16,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/journal-mouvements")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class JournalMouvementsBudgetaireController {
 
     @Autowired

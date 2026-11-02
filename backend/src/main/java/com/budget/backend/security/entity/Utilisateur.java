@@ -1,10 +1,12 @@
 package com.budget.backend.security.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -17,42 +19,24 @@ import java.util.UUID;
 @Builder
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Utilisateur {
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(unique = true, nullable = false, length = 50)
-    private String matricule; // Ex: EMP-2026-0142
-
-    @Column(nullable = false, length = 100)
-    private String nom;
-
-    @Column(nullable = false, length = 100)
-    private String prenom;
-
     @Column(unique = true, nullable = false, length = 150)
-    private String email;
+    private String username;
 
     @Column(name = "mot_de_passe_hash", nullable = false, length = 255)
+    @JsonIgnore
     private String motDePasseHash;
 
-    // L'entité est déduite via la structure (structure -> entite)
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "structure_id", nullable = false)
-    private Structure structure;
+    @OneToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "salarie_id", nullable = false, unique = true)
+    private Salarie salarie;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "manager_id")
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    private Utilisateur manager;
-
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "role_id", nullable = false)
     private Role role;
-
-    @Column(name = "role_metier", length = 100)
-    private String roleMetier;
 
     @Builder.Default
     @Column(nullable = false)
