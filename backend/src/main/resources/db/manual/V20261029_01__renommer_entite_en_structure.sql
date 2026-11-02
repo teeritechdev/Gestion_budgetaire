@@ -1,0 +1,21 @@
+BEGIN;
+
+ALTER TABLE structures RENAME TO unites_organisationnelles;
+ALTER TABLE entites RENAME TO structures;
+ALTER TABLE unites_organisationnelles RENAME COLUMN entite_code TO structure_code;
+
+ALTER TABLE structures
+    ADD COLUMN IF NOT EXISTS telephone VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS adresse VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS email VARCHAR(150),
+    ADD COLUMN IF NOT EXISTS ville VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS pays VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS sigle VARCHAR(30),
+    ADD COLUMN IF NOT EXISTS secteur_activite VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS forme_juridique VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS numero_fiscal VARCHAR(100),
+    ADD COLUMN IF NOT EXISTS site_web VARCHAR(255),
+    ADD COLUMN IF NOT EXISTS logo VARCHAR(512),
+    ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP;
+
+COMMIT;

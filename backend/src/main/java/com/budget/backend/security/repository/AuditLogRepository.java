@@ -11,4 +11,5 @@ import java.util.UUID;
 public interface AuditLogRepository extends JpaRepository<AuditLog, UUID> {
     List<AuditLog> findByUtilisateurId(UUID utilisateurId);
     List<AuditLog> findByNomTableAndEnregistrementId(String nomTable, String enregistrementId);
+    long countByUtilisateurId(UUID utilisateurId);
 }

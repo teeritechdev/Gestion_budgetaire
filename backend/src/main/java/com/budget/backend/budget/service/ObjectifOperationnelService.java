@@ -1,5 +1,6 @@
 package com.budget.backend.budget.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.budget.entity.ObjectifOperationnel;
 import com.budget.backend.budget.entity.ObjectifStrategique;
 import com.budget.backend.budget.repository.ObjectifOperationnelRepository;
@@ -93,22 +94,27 @@ public class ObjectifOperationnelService {
 
     // Export CSV avec filtres
     public String exporterEnCsv(String codeOp, String libelle, String description, UUID osId) {
-        List<ObjectifOperationnel> list = filtrerOp(codeOp, libelle, description, osId);
+        return exporterEnCsv(filtrerOp(codeOp, libelle, description, osId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<ObjectifOperationnel> list) {
         StringBuilder sb = new StringBuilder();
         sb.append("ID,Code OP,Libellé,Description,Code OS\n");
         for (ObjectifOperationnel o : list) {
-            sb.append(o.getId()).append(",")
-                    .append("\"").append(o.getCodeOp()).append("\",")
-                    .append("\"").append(o.getLibelle() != null ? o.getLibelle().replace("\"", "\"\"") : "").append("\",")
-                    .append("\"").append(o.getDescription() != null ? o.getDescription().replace("\"", "\"\"") : "").append("\",")
-                    .append("\"").append(o.getObjectifStrategique() != null ? o.getObjectifStrategique().getCodeOs() : "").append("\"\n");
+            sb.append(CsvUtils.ligne(',', o.getId(), o.getCodeOp(), o.getLibelle(), o.getDescription(),
+                    o.getObjectifStrategique() != null ? o.getObjectifStrategique().getCodeOs() : ""));
         }
         return sb.toString();
     }
 
     // Export PDF avec filtres (OpenPDF)
     public byte[] exporterEnPdf(String codeOp, String libelle, String description, UUID osId) {
-        List<ObjectifOperationnel> list = filtrerOp(codeOp, libelle, description, osId);
+        return exporterEnPdf(filtrerOp(codeOp, libelle, description, osId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<ObjectifOperationnel> list) {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document();

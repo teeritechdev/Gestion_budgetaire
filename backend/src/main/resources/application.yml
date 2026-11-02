@@ -5,14 +5,14 @@ spring:
   datasource:
     # Si ton application Spring Boot tourne directement sur ta machine (hors Docker), utilise "localhost".
     # Si ton Spring Boot tourne aussi dans un conteneur Docker, garde "host.docker.internal".
-    url: jdbc:postgresql://localhost:5432/gestion_budget
+    url: jdbc:postgresql://localhost:5432/gestion_budgetaire
     username: postgres
     password: djibi6299
     driver-class-name: org.postgresql.Driver
 
   jpa:
     hibernate:
-      ddl-auto: validate # Empêche Hibernate de modifier tes tables existantes, il fait juste une vérification
+      ddl-auto: update # Empêche Hibernate de modifier tes tables existantes, il fait juste une vérification
     show-sql: true
     properties:
       hibernate:

@@ -18,7 +18,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/allocations-structures")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class BudgetAllocationStructureController {
 
     @Autowired
@@ -27,18 +26,24 @@ public class BudgetAllocationStructureController {
     @GetMapping
     @PreAuthorize("hasPermission(null, 'execution.lire')")
     public ResponseEntity<List<BudgetAllocationStructure>> listerOuFiltrer(
-            @RequestParam(required = false) UUID structureId,
+            @RequestParam(required = false) String structureCode,
             @RequestParam(required = false) UUID allocationActiviteId) {
-        if (structureId != null || allocationActiviteId != null) {
-            return ResponseEntity.ok(service.filtrerAllocations(structureId, allocationActiviteId));
+        if (structureCode != null || allocationActiviteId != null) {
+            return ResponseEntity.ok(service.filtrerAllocations(structureCode, allocationActiviteId));
         }
         return ResponseEntity.ok(service.listerToutes());
+    }
+
+    @GetMapping("/csp")
+    @PreAuthorize("hasPermission(null, 'repartition_csp.lire') or hasPermission(null, 'repartition_csp.creer') or hasPermission(null, 'execution.lire')")
+    public ResponseEntity<List<BudgetAllocationStructure>> listerAllocationsCsp() {
+        return ResponseEntity.ok(service.listerAllocationsCsp());
     }
 
     @PostMapping
     @PreAuthorize("hasPermission(null, 'execution.creer')")
     public ResponseEntity<BudgetAllocationStructure> attribuer(@RequestBody AllocationStructureRequestDto dto) {
-        BudgetAllocationStructure cree = service.attribuerBudgetStructure(dto.getAllocationActiviteId(), dto.getStructureId(), dto.getMontantVote());
+        BudgetAllocationStructure cree = service.attribuerBudgetStructure(dto.getAllocationActiviteId(), dto.getStructureCode(), dto.getMontantVote());
         return new ResponseEntity<>(cree, HttpStatus.CREATED);
     }
 
@@ -52,8 +57,8 @@ public class BudgetAllocationStructureController {
 
     @GetMapping("/export/csv")
     @PreAuthorize("hasPermission(null, 'execution.exporter')")
-    public ResponseEntity<byte[]> exporterCsv(@RequestParam(required = false) UUID structureId, @RequestParam(required = false) UUID allocationActiviteId) {
-        byte[] bytes = service.exporterEnCsv(structureId, allocationActiviteId).getBytes(StandardCharsets.UTF_8);
+    public ResponseEntity<byte[]> exporterCsv(@RequestParam(required = false) String structureCode, @RequestParam(required = false) UUID allocationActiviteId) {
+        byte[] bytes = service.exporterEnCsv(structureCode, allocationActiviteId).getBytes(StandardCharsets.UTF_8);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.parseMediaType("text/csv"));
         headers.setContentDispositionFormData("attachment", "execution_structure_export.csv");
@@ -62,8 +67,8 @@ public class BudgetAllocationStructureController {
 
     @GetMapping("/export/pdf")
     @PreAuthorize("hasPermission(null, 'execution.exporter')")
-    public ResponseEntity<byte[]> exporterPdf(@RequestParam(required = false) UUID structureId, @RequestParam(required = false) UUID allocationActiviteId) {
-        byte[] pdfBytes = service.exporterEnPdf(structureId, allocationActiviteId);
+    public ResponseEntity<byte[]> exporterPdf(@RequestParam(required = false) String structureCode, @RequestParam(required = false) UUID allocationActiviteId) {
+        byte[] pdfBytes = service.exporterEnPdf(structureCode, allocationActiviteId);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "execution_structure_export.pdf");

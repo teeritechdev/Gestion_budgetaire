@@ -1,16 +1,19 @@
 package com.budget.backend.security.service;
 
-import com.budget.backend.security.entity.Entite;
+import com.budget.backend.common.CsvReader;
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.security.entity.Structure;
-import com.budget.backend.security.repository.EntiteRepository;
 import com.budget.backend.security.repository.StructureRepository;
+import com.budget.backend.security.repository.DirectionRepository;
+import com.budget.backend.security.repository.UniteOrganisationnelleRepository;
+import com.budget.backend.budget.repository.BudgetAllocationStructureRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.multipart.MultipartFile;
-import com.lowagie.text.*;
-import com.lowagie.text.pdf.PdfWriter;
-import java.io.ByteArrayOutputStream;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
@@ -18,7 +21,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.Locale;
 import java.util.stream.Collectors;
+import com.lowagie.text.*;
+import com.lowagie.text.pdf.PdfWriter;
+import java.io.ByteArrayOutputStream;
 
 @Service
 public class StructureService {
@@ -27,7 +34,13 @@ public class StructureService {
     private StructureRepository structureRepository;
 
     @Autowired
-    private EntiteRepository entiteRepository;
+    private DirectionRepository directionRepository;
+
+    @Autowired
+    private UniteOrganisationnelleRepository uniteOrganisationnelleRepository;
+
+    @Autowired
+    private BudgetAllocationStructureRepository allocationRepository;
 
     @Autowired
     private AuditService auditService;
@@ -37,25 +50,39 @@ public class StructureService {
         return structureRepository.findAll();
     }
 
-    public Optional<Structure> trouverParId(UUID id) {
-        return structureRepository.findById(id);
+    public Optional<Structure> trouverParCode(String code) {
+        return structureRepository.findById(code);
     }
 
     // --- CRUD : Filtrage multicritères ---
-    public List<Structure> filtrerStructures(String entiteCode, String typeStructure, Boolean actif, String libelle) {
+    public List<Structure> filtrerStructures(String nom) {
         return structureRepository.findAll().stream()
-                .filter(s -> entiteCode == null || (s.getEntite() != null && s.getEntite().getCode().equalsIgnoreCase(entiteCode)))
-                .filter(s -> typeStructure == null || s.getTypeStructure().equalsIgnoreCase(typeStructure))
-                .filter(s -> actif == null || s.getActif().equals(actif))
-                .filter(s -> libelle == null || s.getLibelle().toLowerCase().contains(libelle.toLowerCase()))
+                .filter(e -> nom == null || e.getNom().toLowerCase().contains(nom.toLowerCase()))
                 .collect(Collectors.toList());
     }
 
     // --- CRUD : Création ---
     @Transactional
     public Structure creerStructure(Structure structure, String utilisateurIdStr) {
-        if (structureRepository.findByCode(structure.getCode()).isPresent()) {
-            throw new RuntimeException("Une structure avec le code '" + structure.getCode() + "' existe déjà.");
+        if (structure == null || structure.getCode() == null || structure.getCode().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le code de la structure est obligatoire.");
+        }
+        if (structure.getNom() == null || structure.getNom().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le nom de la structure est obligatoire.");
+        }
+        structure.setCode(structure.getCode().trim().toUpperCase(Locale.ROOT));
+        structure.setNom(structure.getNom().trim());
+        if (structure.getCode().length() > 20) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Le code de la structure ne peut pas dépasser 20 caractères.");
+        }
+        if (structure.getNom().length() > 150) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Le nom de la structure ne peut pas dépasser 150 caractères.");
+        }
+        if (structureRepository.existsByCode(structure.getCode())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT, "Une structure avec le code '" + structure.getCode() + "' existe déjà.");
         }
         Structure saved = structureRepository.save(structure);
 
@@ -65,9 +92,9 @@ public class StructureService {
                     UUID.fromString(utilisateurIdStr),
                     "INSERTION",
                     "structures",
-                    saved.getId().toString(),
+                    saved.getCode(),
                     null,
-                    Map.of("code", saved.getCode(), "libelle", saved.getLibelle())
+                    Map.of("code", saved.getCode(), "nom", saved.getNom())
             );
         }
         return saved;
@@ -75,24 +102,24 @@ public class StructureService {
 
     // --- CRUD : Modification ---
     @Transactional
-    public Structure modifierStructure(UUID id, Structure nouvellesDonnees, String utilisateurIdStr) {
-        Structure existante = structureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Structure introuvable avec l'id : " + id));
+    public Structure modifierStructure(String code, Structure nouvellesDonnees, String utilisateurIdStr) {
+        Structure existante = structureRepository.findById(code)
+                .orElseThrow(() -> new RuntimeException("Structure introuvable avec le code : " + code));
 
-        Map<String, Object> anciennesValeurs = Map.of(
-                "libelle", existante.getLibelle(),
-                "type_structure", existante.getTypeStructure(),
-                "actif", existante.getActif()
-        );
+        Map<String, Object> anciennesValeurs = Map.of("nom", existante.getNom());
 
-        existante.setLibelle(nouvellesDonnees.getLibelle());
-        existante.setTypeStructure(nouvellesDonnees.getTypeStructure());
-        existante.setParent(nouvellesDonnees.getParent());
-        existante.setDirection(nouvellesDonnees.getDirection());
-        existante.setEntite(nouvellesDonnees.getEntite());
-        existante.setResponsableId(nouvellesDonnees.getResponsableId());
-        existante.setActif(nouvellesDonnees.getActif());
-
+        existante.setNom(nouvellesDonnees.getNom());
+        existante.setTelephone(nouvellesDonnees.getTelephone());
+        existante.setAdresse(nouvellesDonnees.getAdresse());
+        existante.setEmail(nouvellesDonnees.getEmail());
+        existante.setVille(nouvellesDonnees.getVille());
+        existante.setPays(nouvellesDonnees.getPays());
+        existante.setSigle(nouvellesDonnees.getSigle());
+        existante.setSecteurActivite(nouvellesDonnees.getSecteurActivite());
+        existante.setFormeJuridique(nouvellesDonnees.getFormeJuridique());
+        existante.setNumeroFiscal(nouvellesDonnees.getNumeroFiscal());
+        existante.setSiteWeb(nouvellesDonnees.getSiteWeb());
+        existante.setLogo(nouvellesDonnees.getLogo());
         Structure updated = structureRepository.save(existante);
 
         // Audit
@@ -101,9 +128,9 @@ public class StructureService {
                     UUID.fromString(utilisateurIdStr),
                     "MODIFICATION",
                     "structures",
-                    id.toString(),
+                    code,
                     anciennesValeurs,
-                    Map.of("libelle", updated.getLibelle(), "type_structure", updated.getTypeStructure(), "actif", updated.getActif())
+                    Map.of("nom", updated.getNom())
             );
         }
         return updated;
@@ -111,9 +138,17 @@ public class StructureService {
 
     // --- CRUD : Suppression ---
     @Transactional
-    public void supprimerStructure(UUID id, String utilisateurIdStr) {
-        Structure structure = structureRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Structure introuvable avec l'id : " + id));
+    public void supprimerStructure(String code, String utilisateurIdStr) {
+        Structure structure = structureRepository.findById(code)
+                .orElseThrow(() -> new RuntimeException("Structure introuvable avec le code : " + code));
+
+        if (directionRepository.existsByStructure_Code(code)
+                || !uniteOrganisationnelleRepository.findByStructureCode(code).isEmpty()
+                || allocationRepository.existsByStructure_Code(code)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Cette Structure ne peut pas être supprimée tant que des directions, unités historiques ou allocations y sont rattachées.");
+        }
 
         structureRepository.delete(structure);
 
@@ -123,25 +158,25 @@ public class StructureService {
                     UUID.fromString(utilisateurIdStr),
                     "SUPPRESSION",
                     "structures",
-                    id.toString(),
-                    Map.of("code", structure.getCode(), "libelle", structure.getLibelle()),
+                    code,
+                    Map.of("nom", structure.getNom()),
                     null
             );
         }
     }
 
     // --- Export CSV (respectant les filtres) ---
-    public String exporterEnCsv(String entiteCode, String typeStructure, Boolean actif, String libelle) {
-        List<Structure> structures = filtrerStructures(entiteCode, typeStructure, actif, libelle);
-        StringBuilder csv = new StringBuilder("ID;Code;Libelle;TypeStructure;EntiteCode;Actif;Date_Creation\n");
-        for (Structure s : structures) {
-            csv.append(s.getId()).append(";")
-                    .append(s.getCode()).append(";")
-                    .append(s.getLibelle()).append(";")
-                    .append(s.getTypeStructure()).append(";")
-                    .append(s.getEntite() != null ? s.getEntite().getCode() : "").append(";")
-                    .append(s.getActif()).append(";")
-                    .append(s.getCreatedAt()).append("\n");
+    public String exporterEnCsv(String nom) {
+        return exporterEnCsv(filtrerStructures(nom));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<Structure> structures) {
+        StringBuilder csv = new StringBuilder("Code;Nom;Telephone;Adresse;Email;Ville;Pays;Sigle;Secteur_Activite;Forme_Juridique;Numero_Fiscal;Site_Web;Logo;Date_Creation\n");
+        for (Structure e : structures) {
+            csv.append(CsvUtils.ligne(';', e.getCode(), e.getNom(), e.getTelephone(), e.getAdresse(),
+                    e.getEmail(), e.getVille(), e.getPays(), e.getSigle(), e.getSecteurActivite(),
+                    e.getFormeJuridique(), e.getNumeroFiscal(), e.getSiteWeb(), e.getLogo(), e.getCreatedAt()));
         }
         return csv.toString();
     }
@@ -149,85 +184,82 @@ public class StructureService {
     // --- Import CSV ---
     @Transactional
     public int importerCsv(MultipartFile file, String utilisateurIdStr) {
-        int count = 0;
-        try (BufferedReader reader = new BufferedReader(new InputStreamReader(file.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            boolean isFirstLine = true;
-            while ((line = reader.readLine()) != null) {
-                if (isFirstLine) {
-                    isFirstLine = false;
-                    continue;
-                }
-                String[] data = line.split(";");
-                if (data.length >= 5) {
-                    String code = data[0].trim();
-                    String libelle = data[1].trim();
-                    String typeStructure = data[2].trim();
-                    String entiteCode = data[3].trim();
-                    Boolean actif = Boolean.parseBoolean(data[4].trim());
-
-                    if (structureRepository.findByCode(code).isEmpty()) {
-                        Entite entite = entiteRepository.findById(entiteCode)
-                                .orElseThrow(() -> new RuntimeException("Entité parente introuvable pour l'import : " + entiteCode));
-
-                        Structure s = Structure.builder()
-                                .code(code)
-                                .libelle(libelle)
-                                .typeStructure(typeStructure)
-                                .entite(entite)
-                                .actif(actif)
-                                .build();
-                        structureRepository.save(s);
-                        count++;
-                    }
-                }
+        // Colonnes repérées par leur nom (format de l'export) ; les codes déjà existants sont ignorés.
+        int[] crees = {0};
+        CsvReader.lire(file, List.of("code", "nom"), ligne -> {
+            String code = ligne.obligatoire("code").toUpperCase();
+            if (structureRepository.existsByCode(code)) {
+                return;
             }
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de l'importation CSV des structures : " + e.getMessage());
-        }
+            structureRepository.save(Structure.builder()
+                    .code(code)
+                    .nom(ligne.obligatoire("nom"))
+                    .telephone(ligne.texte("telephone"))
+                    .adresse(ligne.texte("adresse"))
+                    .email(ligne.texte("email"))
+                    .ville(ligne.texte("ville"))
+                    .pays(ligne.texte("pays"))
+                    .sigle(ligne.texte("sigle"))
+                    .secteurActivite(ligne.texte("secteur_activite"))
+                    .formeJuridique(ligne.texte("forme_juridique"))
+                    .numeroFiscal(ligne.texte("numero_fiscal"))
+                    .siteWeb(ligne.texte("site_web"))
+                    .logo(ligne.texte("logo"))
+                    .build());
+            crees[0]++;
+        });
+        int count = crees[0];
         return count;
     }
-    public byte[] exporterEnPdf(String entiteCode, String typeStructure, Boolean actif, String libelle) {
-        List<Structure> structures = filtrerStructures(entiteCode, typeStructure, actif, libelle);
+    public byte[] exporterEnPdf(String nom) {
+        return exporterEnPdf(filtrerStructures(nom));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<Structure> entites) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {
-            Document document = new Document(PageSize.A4.rotate()); // Format paysage pour plus de colonnes
+            Document document = new Document(PageSize.A4);
             PdfWriter.getInstance(document, out);
             document.open();
 
+            // Titre
             Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-            Paragraph title = new Paragraph("Rapport de l'Organigramme - Structures UAB", titleFont);
+            Paragraph title = new Paragraph("Rapport des Structures - UAB", titleFont);
             title.setAlignment(Element.ALIGN_CENTER);
             document.add(title);
-            document.add(new Paragraph(" "));
+            document.add(new Paragraph(" ")); // Saut de ligne
 
-            com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(6);
+            // Tableau
+            com.lowagie.text.pdf.PdfPTable table = new com.lowagie.text.pdf.PdfPTable(4);
             table.setWidthPercentage(100);
-            table.setWidths(new float[]{2f, 3f, 4f, 3f, 2f, 2f});
+            table.setWidths(new float[]{2f, 4f, 3f, 3f});
 
+            // En-têtes
             table.addCell("Code");
-            table.addCell("Libellé");
-            table.addCell("Type");
-            table.addCell("Entité");
-            table.addCell("Actif");
+            table.addCell("Nom");
+            table.addCell("Ville");
             table.addCell("Date Création");
 
-            for (Structure s : structures) {
-                table.addCell(s.getCode());
-                table.addCell(s.getLibelle());
-                table.addCell(s.getTypeStructure());
-                table.addCell(s.getEntite() != null ? s.getEntite().getCode() : "");
-                table.addCell(s.getActif() ? "OUI" : "NON");
-                table.addCell(s.getCreatedAt() != null ? s.getCreatedAt().toString() : "");
+            // Données
+            for (Structure e : entites) {
+                table.addCell(e.getCode());
+                table.addCell(e.getNom());
+                table.addCell(e.getVille() != null ? e.getVille() : "");
+                table.addCell(e.getCreatedAt() != null ? e.getCreatedAt().toString() : "");
             }
 
             document.add(table);
             document.close();
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la génération du PDF des structures : " + e.getMessage());
+            throw new RuntimeException("Erreur lors de la génération du PDF des entités : " + e.getMessage());
         }
 
         return out.toByteArray();
+    }
+
+    private String csvValue(String[] data, int index) {
+        return data.length > index && !data[index].isBlank() ? data[index].trim() : null;
     }
 }

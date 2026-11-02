@@ -1,0 +1,13 @@
+ALTER TABLE utilisateurs
+    ADD COLUMN IF NOT EXISTS sexe VARCHAR(20);
+
+UPDATE utilisateurs
+SET sexe = 'NON_RENSEIGNE'
+WHERE sexe IS NULL;
+
+ALTER TABLE utilisateurs
+    ALTER COLUMN sexe SET DEFAULT 'NON_RENSEIGNE',
+    ALTER COLUMN sexe SET NOT NULL;
+
+ALTER TABLE utilisateurs
+    ADD COLUMN IF NOT EXISTS telephone VARCHAR(30);

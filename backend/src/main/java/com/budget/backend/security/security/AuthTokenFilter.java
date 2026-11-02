@@ -1,5 +1,6 @@
 package com.budget.backend.security.security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,13 +23,21 @@ public class AuthTokenFilter extends OncePerRequestFilter {
     @Autowired
     private UserDetailsServiceImpl userDetailsService;
 
+    @Autowired
+    private TokenRevocationService tokenRevocationService;
+
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
         try {
             String jwt = parseJwt(request);
             if (jwt != null && jwtUtils.validateJwtToken(jwt)) {
-                String username = jwtUtils.getUserNameFromJwtToken(jwt);
+                Claims claims = jwtUtils.getClaims(jwt);
+                if (tokenRevocationService.estRevoque(claims.getId())) {
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+                String username = claims.getSubject();
 
                 UserDetails userDetails = userDetailsService.loadUserByUsername(username);
                 UsernamePasswordAuthenticationToken authentication =
@@ -41,7 +50,8 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         } catch (Exception e) {
-            logger.error("Impossible de définir l'authentification utilisateur: {}", e);
+            SecurityContextHolder.clearContext();
+            logger.warn("Impossible de définir l'authentification utilisateur : " + e.getMessage());
         }
 
         filterChain.doFilter(request, response);

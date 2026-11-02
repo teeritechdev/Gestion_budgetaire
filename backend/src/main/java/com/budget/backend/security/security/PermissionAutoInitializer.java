@@ -4,11 +4,13 @@ import com.budget.backend.security.entity.Permission;
 import com.budget.backend.security.repository.PermissionRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 
 @Component
+@Order(1)
 public class PermissionAutoInitializer implements CommandLineRunner {
 
     @Autowired
@@ -37,6 +39,24 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 new PermissionDefinition("structure.supprimer", "Supprimer une structure", "SECURITE"),
                 new PermissionDefinition("structure.exporter", "Exporter l'organigramme (CSV/PDF)", "SECURITE"),
                 new PermissionDefinition("structure.importer", "Importer l'organigramme en masse", "SECURITE"),
+                new PermissionDefinition("direction.lire", "Consulter les directions", "SECURITE"),
+                new PermissionDefinition("direction.creer", "Créer une direction", "SECURITE"),
+                new PermissionDefinition("direction.modifier", "Modifier une direction", "SECURITE"),
+                new PermissionDefinition("direction.supprimer", "Supprimer une direction", "SECURITE"),
+                new PermissionDefinition("direction.exporter", "Exporter les directions (CSV/PDF)", "SECURITE"),
+                new PermissionDefinition("direction.importer", "Importer des directions en masse", "SECURITE"),
+                new PermissionDefinition("service.lire", "Consulter les services", "SECURITE"),
+                new PermissionDefinition("service.creer", "Créer un service", "SECURITE"),
+                new PermissionDefinition("service.modifier", "Modifier un service", "SECURITE"),
+                new PermissionDefinition("service.supprimer", "Supprimer un service", "SECURITE"),
+                new PermissionDefinition("service.exporter", "Exporter les services (CSV/PDF)", "SECURITE"),
+                new PermissionDefinition("service.importer", "Importer des services en masse", "SECURITE"),
+                new PermissionDefinition("salarie.lire", "Consulter les dossiers salariés", "SECURITE"),
+                new PermissionDefinition("salarie.creer", "Créer un salarié", "SECURITE"),
+                new PermissionDefinition("salarie.modifier", "Modifier un dossier salarié", "SECURITE"),
+                new PermissionDefinition("salarie.supprimer", "Supprimer un salarié", "SECURITE"),
+                new PermissionDefinition("salarie.exporter", "Exporter les dossiers salariés (CSV/PDF)", "SECURITE"),
+                new PermissionDefinition("salarie.importer", "Importer des salariés en masse", "SECURITE"),
 
                 // 3. Rôles (roles)
                 new PermissionDefinition("role.lire", "Consulter les rôles RBAC", "SECURITE"),
@@ -71,12 +91,13 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 // MODULE 2 : PYRAMIDE BUDGÉTAIRE & CASCADE
                 // ==========================================
 
-                // 7. Plans Stratégiques (plans_strategiques)
-                new PermissionDefinition("plan.lire", "Consulter les plans stratégiques", "BUDGET_STRATEGIE"),
-                new PermissionDefinition("plan.creer", "Créer un plan stratégique", "BUDGET_STRATEGIE"),
-                new PermissionDefinition("plan.modifier", "Modifier un plan stratégique", "BUDGET_STRATEGIE"),
-                new PermissionDefinition("plan.supprimer", "Supprimer un plan stratégique", "BUDGET_STRATEGIE"),
-                new PermissionDefinition("plan.exporter", "Exporter les plans stratégiques (CSV/PDF)", "BUDGET_STRATEGIE"),
+                // 7. Plans budgétaires (table plans_strategiques)
+                new PermissionDefinition("plan.lire", "Consulter les plans budgétaires", "BUDGET_STRATEGIE"),
+                new PermissionDefinition("plan.creer", "Créer un plan budgétaire", "BUDGET_STRATEGIE"),
+                new PermissionDefinition("plan.modifier", "Modifier un plan budgétaire", "BUDGET_STRATEGIE"),
+                new PermissionDefinition("plan.supprimer", "Supprimer un plan budgétaire", "BUDGET_STRATEGIE"),
+                new PermissionDefinition("plan.exporter", "Exporter les plans budgétaires (CSV/PDF)", "BUDGET_STRATEGIE"),
+                new PermissionDefinition("plan.importer", "Importer des plans budgétaires en masse", "BUDGET_STRATEGIE"),
 
                 // 8. Objectifs Stratégiques / OS (objectifs_strategiques)
                 new PermissionDefinition("os.lire", "Consulter les objectifs stratégiques", "BUDGET_STRATEGIE"),
@@ -84,6 +105,7 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 new PermissionDefinition("os.modifier", "Modifier un objectif stratégique", "BUDGET_STRATEGIE"),
                 new PermissionDefinition("os.supprimer", "Supprimer un objectif stratégique", "BUDGET_STRATEGIE"),
                 new PermissionDefinition("os.exporter", "Exporter les objectifs stratégiques (CSV/PDF)", "BUDGET_STRATEGIE"),
+                new PermissionDefinition("os.importer", "Importer des objectifs stratégiques en masse", "BUDGET_STRATEGIE"),
 
                 // 9. Objectifs Opérationnels / OP (objectifs_operationnels)
                 new PermissionDefinition("op.lire", "Consulter les objectifs opérationnels", "BUDGET_STRATEGIE"),
@@ -91,6 +113,7 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 new PermissionDefinition("op.modifier", "Modifier un objectif opérationnel", "BUDGET_STRATEGIE"),
                 new PermissionDefinition("op.supprimer", "Supprimer un objectif opérationnel", "BUDGET_STRATEGIE"),
                 new PermissionDefinition("op.exporter", "Exporter les objectifs opérationnels (CSV/PDF)", "BUDGET_STRATEGIE"),
+                new PermissionDefinition("op.importer", "Importer des objectifs opérationnels en masse", "BUDGET_STRATEGIE"),
 
                 // 10. Catalogue des Activités (activites_catalogue)
                 new PermissionDefinition("activite.lire", "Consulter le catalogue des activités", "BUDGET_STRATEGIE"),
@@ -106,6 +129,7 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 new PermissionDefinition("exercice.modifier", "Modifier un exercice budgétaire", "BUDGET_CASCADE"),
                 new PermissionDefinition("exercice.supprimer", "Supprimer un exercice budgétaire", "BUDGET_CASCADE"),
                 new PermissionDefinition("exercice.exporter", "Exporter les exercices budgétaires (CSV/PDF)", "BUDGET_CASCADE"),
+                new PermissionDefinition("exercice.importer", "Importer des exercices budgétaires en masse", "BUDGET_CASCADE"),
 
                 // 12. Allocations OS (budget_allocation_os)
                 new PermissionDefinition("allocation_os.lire", "Consulter les allocations au niveau OS", "BUDGET_CASCADE"),
@@ -134,6 +158,9 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 // 16. Révisions & Virements Budgétaires (demandes_revision_budgetaire)
                 new PermissionDefinition("revision.lire", "Consulter les demandes de révision et virements", "BUDGET_REVISION"),
                 new PermissionDefinition("revision.creer", "Créer une demande de révision ou virement", "BUDGET_REVISION"),
+                new PermissionDefinition("revision.modifier", "Modifier une demande de révision au brouillon", "BUDGET_REVISION"),
+                new PermissionDefinition("revision.supprimer", "Supprimer une demande de révision au brouillon", "BUDGET_REVISION"),
+                new PermissionDefinition("revision.soumettre", "Soumettre une demande de révision", "BUDGET_REVISION"),
                 new PermissionDefinition("revision.valider", "Valider une demande de révision et appliquer le virement", "BUDGET_REVISION"),
                 new PermissionDefinition("revision.exporter", "Exporter les demandes et lignes de révision (CSV/PDF)", "BUDGET_REVISION"),
 
@@ -148,16 +175,23 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 new PermissionDefinition("repartition_csp.supprimer", "Supprimer une règle de répartition CSP", "BUDGET_REVISION"),
 
                 // 19. Module Clés Statistiques des Entités (entites_statistiques_cles)
+                new PermissionDefinition("allocation.importer", "Importer des allocations budgétaires en masse (tous niveaux)", "BUDGET_CASCADE"),
+                new PermissionDefinition("repartition_csp.exporter", "Exporter les règles de répartition CSP (CSV/PDF)", "BUDGET_REVISION"),
+                new PermissionDefinition("repartition_csp.importer", "Importer des règles de répartition CSP en masse", "BUDGET_REVISION"),
+                new PermissionDefinition("revision.importer", "Importer des demandes de révision (brouillons) en masse", "BUDGET_REVISION"),
                 new PermissionDefinition("statistique_cle.lire", "Consulter les clés statistiques des entités", "BUDGET_REVISION"),
                 new PermissionDefinition("statistique_cle.creer", "Créer une clé statistique", "BUDGET_REVISION"),
                 new PermissionDefinition("statistique_cle.modifier", "Modifier une clé statistique", "BUDGET_REVISION"),
                 new PermissionDefinition("statistique_cle.supprimer", "Supprimer une clé statistique", "BUDGET_REVISION"),
+                new PermissionDefinition("statistique_cle.exporter", "Exporter les clés statistiques (CSV/PDF)", "BUDGET_REVISION"),
                 new PermissionDefinition("statistique_cle.importer", "Importer les clés statistiques en masse", "BUDGET_REVISION")
         );
 
         int countAjoutees = 0;
+        int countRenommees = 0;
         for (PermissionDefinition def : permissionsAEnregistrer) {
-            if (permissionRepository.findByCode(def.code()).isEmpty()) {
+            java.util.Optional<Permission> existante = permissionRepository.findByCode(def.code());
+            if (existante.isEmpty()) {
                 Permission p = Permission.builder()
                         .code(def.code())
                         .libelle(def.libelle())
@@ -165,7 +199,15 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                         .build();
                 permissionRepository.save(p);
                 countAjoutees++;
+            } else if (!def.libelle().equals(existante.get().getLibelle())) {
+                // Le catalogue fait foi pour les libellés (ex. renommage « plans stratégiques » → « plans budgétaires »).
+                existante.get().setLibelle(def.libelle());
+                permissionRepository.save(existante.get());
+                countRenommees++;
             }
+        }
+        if (countRenommees > 0) {
+            System.out.println("--> [AUTO-PERMISSION] " + countRenommees + " libellé(s) de permission mis à jour.");
         }
 
         if (countAjoutees > 0) {

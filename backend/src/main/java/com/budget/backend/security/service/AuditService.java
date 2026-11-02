@@ -21,9 +21,16 @@ public class AuditService {
 
     public void logAction(UUID utilisateurId, String typeAction, String nomTable, String enregistrementId,
                           Map<String, Object> anciennesValeurs, Map<String, Object> nouvellesValeurs) {
+        logAction(utilisateurId, typeAction, nomTable, enregistrementId, anciennesValeurs, nouvellesValeurs, request);
+    }
 
-        String adresseIp = getClientIp(request);
-        String userAgent = request.getHeader("User-Agent");
+    public void logAction(UUID utilisateurId, String typeAction, String nomTable, String enregistrementId,
+                          Map<String, Object> anciennesValeurs, Map<String, Object> nouvellesValeurs,
+                          HttpServletRequest httpRequest) {
+
+        httpRequest.setAttribute(AuditService.class.getName() + ".logged", true);
+        String adresseIp = getClientIp(httpRequest);
+        String userAgent = httpRequest.getHeader("User-Agent");
 
         AuditLog auditLog = AuditLog.builder()
                 .utilisateurId(utilisateurId)

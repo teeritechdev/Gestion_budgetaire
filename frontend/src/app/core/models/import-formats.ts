@@ -1,0 +1,251 @@
+import type { ColonneImport } from '../../shared/components/import-csv-page.component';
+
+export interface FormatImport {
+  titre: string;
+  description: string;
+  colonnes: readonly ColonneImport[];
+  exemples: readonly (readonly string[])[];
+  nomModele: string;
+}
+
+/** Formats des imports CSV, alignés sur les colonnes lues par le backend (et produites par les exports). */
+export const IMPORT_FORMATS = {
+  directions: {
+    titre: 'Importer des directions',
+    description: 'Création en masse de directions rattachées à des Structures existantes.',
+    nomModele: 'modele_directions.csv',
+    colonnes: [
+      { nom: 'code', obligatoire: true, aide: 'Code unique de la direction (50 caractères max.).' },
+      { nom: 'libelle', obligatoire: true, aide: 'Intitulé de la direction.' },
+      { nom: 'code_structure', aide: 'Code d’une Structure existante ; obligatoire sauf pour une direction CSP, qui doit rester vide.' },
+      { nom: 'est_csp', aide: 'oui pour une direction CSP, transversale à toutes les structures (non par défaut).' },
+      { nom: 'actif', aide: 'oui / non (oui par défaut).' },
+    ],
+    exemples: [
+      ['DIR-FIN', 'Direction financière', 'UAB_VIE', 'non', 'oui'],
+      ['DIR-SI', 'Direction des systèmes d’information', '', 'oui', 'oui'],
+    ],
+  },
+  services: {
+    titre: 'Importer des services',
+    description: 'Création en masse de services rattachés à des directions existantes.',
+    nomModele: 'modele_services.csv',
+    colonnes: [
+      { nom: 'code', obligatoire: true, aide: 'Code unique du service.' },
+      { nom: 'libelle', obligatoire: true, aide: 'Intitulé du service.' },
+      { nom: 'code_direction', obligatoire: true, aide: 'Code d’une direction existante (ou créée plus haut dans le fichier des directions).' },
+      { nom: 'actif', aide: 'oui / non (oui par défaut).' },
+    ],
+    exemples: [['SVC-COMPTA', 'Service comptabilité', 'DIR-FIN', 'oui']],
+  },
+  salaries: {
+    titre: 'Importer des salariés',
+    description: 'Création en masse des dossiers salariés (sans compte de connexion).',
+    nomModele: 'modele_salaries.csv',
+    colonnes: [
+      { nom: 'matricule', obligatoire: true, aide: 'Matricule unique.' },
+      { nom: 'nom', obligatoire: true, aide: 'Nom de famille.' },
+      { nom: 'prenom', obligatoire: true, aide: 'Prénom.' },
+      { nom: 'sexe', aide: 'HOMME, FEMME, AUTRE ou NON_RENSEIGNE (également H / F).' },
+      { nom: 'telephone', aide: 'Numéro de téléphone.' },
+      { nom: 'email', obligatoire: true, aide: 'Adresse e-mail professionnelle unique.' },
+      { nom: 'poste', aide: 'Fonction occupée.' },
+      { nom: 'date_embauche', aide: 'Date d’embauche (aujourd’hui par défaut).' },
+      { nom: 'code_service', obligatoire: true, aide: 'Code d’un service existant.' },
+      { nom: 'matricule_manager', aide: 'Matricule du manager N+1 (existant ou présent dans le fichier).' },
+      { nom: 'actif', aide: 'oui / non (oui par défaut).' },
+    ],
+    exemples: [
+      ['EMP-2026-010', 'Ouédraogo', 'Awa', 'FEMME', '+226 70 00 00 00', 'awa.ouedraogo@uab.bf', 'Cheffe comptable', '2026-01-15', 'SVC-COMPTA', '', 'oui'],
+      ['EMP-2026-011', 'Sawadogo', 'Ali', 'HOMME', '', 'ali.sawadogo@uab.bf', 'Comptable', '2026-02-01', 'SVC-COMPTA', 'EMP-2026-010', 'oui'],
+    ],
+  },
+  plans: {
+    titre: 'Importer des plans budgétaires',
+    description: 'Création en masse de plans budgétaires.',
+    nomModele: 'modele_plans_strategiques.csv',
+    colonnes: [
+      { nom: 'code_plan', obligatoire: true, aide: 'Code unique du plan.' },
+      { nom: 'libelle', obligatoire: true, aide: 'Intitulé du plan.' },
+      { nom: 'date_debut', obligatoire: true, aide: 'Date de début.' },
+      { nom: 'date_fin', obligatoire: true, aide: 'Date de fin (postérieure au début).' },
+      { nom: 'actif', aide: 'oui / non (oui par défaut).' },
+    ],
+    exemples: [['PS-2026-2030', 'Plan budgétaire 2026-2030', '2026-01-01', '2030-12-31', 'oui']],
+  },
+  objectifsStrategiques: {
+    titre: 'Importer des objectifs stratégiques (OS)',
+    description: 'Création en masse d’objectifs stratégiques. Un export de ce sous-onglet peut être réimporté.',
+    nomModele: 'modele_objectifs_strategiques.csv',
+    colonnes: [
+      { nom: 'code_os', obligatoire: true, aide: 'Code unique de l’OS (ex. OS-01).' },
+      { nom: 'libelle', obligatoire: true, aide: 'Intitulé de l’objectif.' },
+      { nom: 'description', aide: 'Description libre.' },
+    ],
+    exemples: [
+      ['OS-01', 'Renforcer la croissance du portefeuille', 'Axe stratégique commercial'],
+      ['OS-02', 'Améliorer l’efficacité opérationnelle', ''],
+    ],
+  },
+  objectifsOperationnels: {
+    titre: 'Importer des objectifs opérationnels (OP)',
+    description: 'Création en masse d’objectifs opérationnels rattachés à des OS existants.',
+    nomModele: 'modele_objectifs_operationnels.csv',
+    colonnes: [
+      { nom: 'code_op', obligatoire: true, aide: 'Code unique de l’OP (ex. OP-01.01).' },
+      { nom: 'libelle', obligatoire: true, aide: 'Intitulé de l’objectif.' },
+      { nom: 'description', aide: 'Description libre.' },
+      { nom: 'code_os', obligatoire: true, aide: 'Code de l’objectif stratégique parent (existant).' },
+    ],
+    exemples: [['OP-01.01', 'Développer la bancassurance', '', 'OS-01']],
+  },
+  activitesCatalogue: {
+    titre: 'Importer des activités du catalogue (AC)',
+    description: 'Création en masse d’activités rattachées à des OP existants.',
+    nomModele: 'modele_activites_catalogue.csv',
+    colonnes: [
+      { nom: 'code_activite', obligatoire: true, aide: 'Code unique de l’activité (ex. AC-01.01.01).' },
+      { nom: 'libelle', obligatoire: true, aide: 'Intitulé de l’activité.' },
+      { nom: 'description', aide: 'Description libre.' },
+      { nom: 'code_op', obligatoire: true, aide: 'Code de l’objectif opérationnel parent (existant).' },
+    ],
+    exemples: [['AC-01.01.01', 'Campagne de prospection agences', '', 'OP-01.01']],
+  },
+  exercices: {
+    titre: 'Importer des exercices budgétaires',
+    description: 'Création en masse d’exercices rattachés à des plans budgétaires existants.',
+    nomModele: 'modele_exercices.csv',
+    colonnes: [
+      { nom: 'annee', obligatoire: true, aide: 'Année de l’exercice (unique).' },
+      { nom: 'code_plan', obligatoire: true, aide: 'Code d’un plan budgétaire existant.' },
+      { nom: 'statut', aide: 'PREPARATION, OUVERT ou CLOTURE (PREPARATION par défaut).' },
+      { nom: 'montant_total_vote', obligatoire: true, aide: 'Enveloppe votée (ex. 150000000 ou 150 000 000,00).' },
+      { nom: 'date_ouverture', aide: 'Date d’ouverture.' },
+      { nom: 'date_fermeture', aide: 'Date de clôture prévue.' },
+    ],
+    exemples: [['2027', 'PS-2026-2030', 'PREPARATION', '150000000', '2027-01-01', '2027-12-31']],
+  },
+  allocations: {
+    titre: 'Importer des allocations budgétaires',
+    description: 'Cascade OS → OP → AC → Structure ; chaque ligne s’appuie sur l’allocation parente, éventuellement créée plus haut dans le fichier. Les enveloppes sont contrôlées.',
+    nomModele: 'modele_allocations.csv',
+    colonnes: [
+      { nom: 'niveau', obligatoire: true, aide: 'OS, OP, AC ou STRUCTURE.' },
+      { nom: 'annee', obligatoire: true, aide: 'Année de l’exercice.' },
+      { nom: 'code_os', obligatoire: true, aide: 'Code de l’objectif stratégique.' },
+      { nom: 'code_op', aide: 'Code de l’OP (niveaux OP, AC, STRUCTURE).' },
+      { nom: 'code_activite', aide: 'Code de l’activité (niveaux AC, STRUCTURE).' },
+      { nom: 'code_structure', aide: 'Code de la Structure bénéficiaire (niveau STRUCTURE).' },
+      { nom: 'montant', obligatoire: true, aide: 'Montant alloué (montant voté pour une structure).' },
+    ],
+    exemples: [
+      ['OS', '2027', 'OS-01', '', '', '', '50000000'],
+      ['OP', '2027', 'OS-01', 'OP-01.01', '', '', '20000000'],
+      ['AC', '2027', 'OS-01', 'OP-01.01', 'AC-01.01.01', '', '8000000'],
+      ['STRUCTURE', '2027', 'OS-01', 'OP-01.01', 'AC-01.01.01', 'UAB_VIE', '5000000'],
+    ],
+  },
+  statistiques: {
+    titre: 'Importer des clés statistiques',
+    description: 'Mesures d’effectif et de chiffre d’affaires par entité, mensuelles ou annuelles.',
+    nomModele: 'modele_statistiques_cles.csv',
+    colonnes: [
+      { nom: 'code_entite', obligatoire: true, aide: 'Code de la Structure.' },
+      { nom: 'annee', obligatoire: true, aide: 'Année.' },
+      { nom: 'mois', aide: '1 à 12 ; vide pour une mesure annuelle.' },
+      { nom: 'effectif_agents', aide: 'Nombre d’agents.' },
+      { nom: 'chiffre_affaires', aide: 'Chiffre d’affaires.' },
+    ],
+    exemples: [['UAB_VIE', '2026', '', '120', '2500000000']],
+  },
+  repartitionCsp: {
+    titre: 'Importer des règles de répartition CSP',
+    description: 'Les lignes d’une même allocation, activité et clé forment une répartition dont le total doit être égal à 1 (100 %). Le plus simple est de partir d’un export de cet onglet.',
+    nomModele: 'modele_repartition_csp.csv',
+    colonnes: [
+      { nom: 'allocation_structure_csp', obligatoire: true, aide: 'Identifiant de l’allocation structure du CSP (voir l’export des allocations).' },
+      { nom: 'id_activite_csp', obligatoire: true, aide: 'Identifiant de l’activité du CSP.' },
+      { nom: 'entite_beneficiaire', obligatoire: true, aide: 'Code de l’entité bénéficiaire.' },
+      { nom: 'id_activite_beneficiaire', obligatoire: true, aide: 'Identifiant de l’activité bénéficiaire.' },
+      { nom: 'type_cle', obligatoire: true, aide: 'EFFECTIF, CHIFFRE_AFFAIRES ou AUTRE.' },
+      { nom: 'ratio', obligatoire: true, aide: 'Part entre 0 et 1 (ex. 0,25 pour 25 %).' },
+    ],
+    exemples: [],
+  },
+  revisions: {
+    titre: 'Importer des demandes de révision',
+    description: 'Les demandes sont créées au statut brouillon, à votre nom. Les lignes portant le même numéro forment une seule demande.',
+    nomModele: 'modele_revisions.csv',
+    colonnes: [
+      { nom: 'numero_demande', obligatoire: true, aide: 'Numéro unique de la demande.' },
+      { nom: 'annee', obligatoire: true, aide: 'Année de l’exercice.' },
+      { nom: 'motif', obligatoire: true, aide: 'Motif de la demande.' },
+      { nom: 'type_mouvement', obligatoire: true, aide: 'VIREMENT_INTERNE ou EXTENSION.' },
+      { nom: 'montant', obligatoire: true, aide: 'Montant du mouvement (> 0).' },
+      { nom: 'id_allocation_source', aide: 'Identifiant de l’allocation structure débitée (virement uniquement).' },
+      { nom: 'id_allocation_destination', obligatoire: true, aide: 'Identifiant de l’allocation structure créditée.' },
+    ],
+    exemples: [],
+  },
+  utilisateurs: {
+    titre: 'Importer des utilisateurs',
+    description: 'Création en masse des salariés et de leurs comptes de connexion (format positionnel historique).',
+    nomModele: 'modele_utilisateurs.csv',
+    colonnes: [
+      { nom: 'matricule', obligatoire: true, aide: '1re colonne.' },
+      { nom: 'nom', obligatoire: true, aide: '2e colonne.' },
+      { nom: 'prenom', obligatoire: true, aide: '3e colonne.' },
+      { nom: 'email', obligatoire: true, aide: '4e colonne.' },
+      { nom: 'mot_de_passe', obligatoire: true, aide: '5e colonne, 8 caractères minimum.' },
+      { nom: 'code_service', obligatoire: true, aide: '6e colonne.' },
+      { nom: 'code_role', obligatoire: true, aide: '7e colonne.' },
+      { nom: 'poste', obligatoire: true, aide: '8e colonne.' },
+      { nom: 'username', aide: '9e colonne (e-mail par défaut).' },
+      { nom: 'date_embauche', aide: '10e colonne, AAAA-MM-JJ.' },
+    ],
+    exemples: [['EMP-2026-020', 'Kaboré', 'Issa', 'issa.kabore@uab.bf', 'MotDePasse!2026', 'SVC-COMPTA', 'AGENT', 'Comptable', '', '2026-03-01']],
+  },
+  structures: {
+    titre: 'Importer des structures',
+    description: 'Création en masse de Structures ; les codes déjà existants sont ignorés. Un export de cet onglet peut être réimporté.',
+    nomModele: 'modele_structures.csv',
+    colonnes: [
+      { nom: 'code', obligatoire: true, aide: 'Code unique (20 caractères max.).' },
+      { nom: 'nom', obligatoire: true, aide: 'Raison sociale.' },
+      { nom: 'telephone', aide: 'Téléphone.' },
+      { nom: 'adresse', aide: 'Adresse.' },
+      { nom: 'email', aide: 'E-mail.' },
+      { nom: 'ville', aide: 'Ville.' },
+      { nom: 'pays', aide: 'Pays.' },
+      { nom: 'sigle', aide: 'Sigle.' },
+      { nom: 'secteur_activite', aide: 'Secteur d’activité.' },
+      { nom: 'forme_juridique', aide: 'Forme juridique.' },
+      { nom: 'numero_fiscal', aide: 'Numéro fiscal (IFU).' },
+      { nom: 'site_web', aide: 'Site web.' },
+      { nom: 'logo', aide: 'URL du logo.' },
+    ],
+    exemples: [['UAB_IARD', 'UAB IARD', '+226 25 00 00 00', 'Avenue Kwame Nkrumah', 'contact@uab.bf', 'Ouagadougou', 'Burkina Faso', 'UAB', 'Assurance', 'SA', 'IFU-0001', 'https://uab.bf', '']],
+  },
+  roles: {
+    titre: 'Importer des rôles',
+    description: 'Création en masse de rôles sans permission (à attribuer ensuite) ; les codes existants sont ignorés.',
+    nomModele: 'modele_roles.csv',
+    colonnes: [
+      { nom: 'code', obligatoire: true, aide: '1re colonne : code unique du rôle.' },
+      { nom: 'libelle', obligatoire: true, aide: '2e colonne : libellé.' },
+      { nom: 'description', aide: '3e colonne : description.' },
+    ],
+    exemples: [['CONTROLEUR', 'Contrôleur de gestion', 'Suivi budgétaire et reporting']],
+  },
+  permissions: {
+    titre: 'Importer des permissions',
+    description: 'Création en masse de permissions ; les codes existants sont ignorés.',
+    nomModele: 'modele_permissions.csv',
+    colonnes: [
+      { nom: 'code', obligatoire: true, aide: '1re colonne : code (ex. module.action).' },
+      { nom: 'libelle', obligatoire: true, aide: '2e colonne : libellé.' },
+      { nom: 'module', obligatoire: true, aide: '3e colonne : module fonctionnel.' },
+    ],
+    exemples: [['rapport.lire', 'Consulter les rapports', 'REPORTING']],
+  },
+} satisfies Record<string, FormatImport>;

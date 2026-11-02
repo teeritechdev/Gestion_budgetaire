@@ -1,0 +1,370 @@
+
+@if (importOpen()) {
+<app-import-csv-page section="Règles de répartition CSP" ressource="repartition-csp" [format]="importFormats.repartitionCsp" (back)="importOpen.set(false)" (imported)="refresh()" />
+} @else {
+@if (modal()) {
+<app-form-page section="Règles de répartition CSP" [title]="editing() ? 'Modifier la règle de répartition' : 'Créer une règle de répartition'" [mode]="editing() ? 'Modification' : 'Création'" subtitle="Choisissez une allocation structure du CSP et une clé ; chaque entité bénéficiaire reçoit sa part du total." (back)="close()">
+<form
+      (ngSubmit)="save()"
+      novalidate
+      class="form-page-card space-y-5"
+    >
+      @if (saveError()) {
+        <p
+          role="alert"
+          aria-live="assertive"
+          class="sticky top-0 z-10 rounded-lg border border-rose-300 bg-rose-50 p-3 text-xs font-medium text-rose-800 shadow"
+        >
+          {{ saveError() }}
+        </p>
+      }
+      @if (allocationLookupError()) {
+        <p role="alert" class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-800">
+          {{ allocationLookupError() }}
+        </p>
+      }
+      <div class="grid gap-4 sm:grid-cols-2">
+        <label class="space-y-1.5 text-xs text-slate-600 sm:col-span-2"
+          >Allocation structure CSP<select
+            [(ngModel)]="form.allocationStructureId"
+            name="allocationStructureId"
+            (ngModelChange)="onSelectionChange()"
+            class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-white"
+          >
+            <option value="">Choisir l’allocation à répartir…</option>
+            @for (allocation of cspAllocationStructures(); track allocation.id) {
+              <option [value]="allocation.id">
+                {{ allocationStructureLabel(allocation.id, allocation.budgetAllocationActivite?.activiteCatalogue?.id || '') }}
+              </option>
+            }
+          </select></label
+        ><label class="space-y-1.5 text-xs text-slate-600"
+          >Type de clé<select
+            [(ngModel)]="form.cleType"
+            name="cleType"
+            (ngModelChange)="onKeyChange()"
+            class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-white outline-none focus:border-blue-500"
+          >
+            <option value="EFFECTIF">Effectif</option>
+            <option value="CHIFFRE_AFFAIRES">Chiffre d’affaires</option>
+            <option value="AUTRE">Autre</option>
+          </select></label
+        >
+      </div>
+      @if (statisticsLookupError() && form.cleType !== 'AUTRE') {
+        <p class="rounded-lg bg-amber-500/5 p-3 text-xs text-amber-200">
+          {{ statisticsLookupError() }}
+        </p>
+      }
+      @if (form.allocationStructureId) {
+        <section class="overflow-hidden rounded-xl border border-slate-200">
+          <div class="flex items-center justify-between border-b border-slate-200 px-4 py-3">
+            <div>
+              <h3 class="text-xs font-semibold text-slate-800">
+                Répartition par entité ({{ distributionRows().length }} entité(s))
+              </h3>
+              <p class="mt-1 text-[10px] text-slate-500">{{ entityCountSummary() }}</p>
+              @if (form.cleType !== 'AUTRE' && distributionRows().length > 0) {
+                <p class="mt-1 text-[10px] text-slate-500">
+                  Calculée à partir des statistiques du mois le plus récent commun aux entités.
+                </p>
+              }
+            </div>
+            <span
+              class="text-xs font-semibold"
+              [class.text-green-700]="isDistributionTotalValid()"
+              [class.text-amber-700]="!isDistributionTotalValid()"
+            >
+              Total : {{ distributionTotal() | number: '1.0-2' }} %
+            </span>
+          </div>
+          <div class="max-h-72 overflow-y-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="sticky top-0 bg-slate-50 text-[10px] uppercase text-slate-500">
+                <tr>
+                  <th class="px-4 py-2">Entité</th>
+                  @if (form.cleType !== 'AUTRE') {
+                    <th class="px-4 py-2 text-right">Statistique récente</th>
+                  }
+                  <th class="px-4 py-2 text-right">Valeur affectée (%)</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-100">
+                @for (row of distributionRows(); track row.entity.code) {
+                  <tr>
+                    <td class="px-4 py-2 text-slate-700">
+                      {{ row.entity.code }} — {{ row.entity.nom }}
+                      @if (row.statisticPeriod) {
+                        <span class="block text-[10px] text-slate-400">
+                          {{ row.statisticPeriod }}
+                        </span>
+                      }
+                    </td>
+                    @if (form.cleType !== 'AUTRE') {
+                      <td class="px-4 py-2 text-right text-slate-500">
+                        {{
+                          row.statisticValue == null
+                            ? 'Indisponible'
+                            : (row.statisticValue | number: '1.0-2')
+                        }}
+                        @if (form.cleType === 'CHIFFRE_AFFAIRES' && row.statisticValue != null) {
+                          &nbsp;FCFA
+                        }
+                      </td>
+                    }
+                    <td class="px-4 py-2 text-right">
+                      @if (form.cleType === 'AUTRE') {
+                        <input
+                          type="number"
+                          [ngModel]="manualPercentage(row.entity.code) ?? ''"
+                          (ngModelChange)="setManualPercentage(row.entity.code, $event)"
+                          [name]="'pourcentage-' + row.entity.code"
+                          class="w-28 rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-right text-slate-800"
+                          placeholder="0,00"
+                        />
+                      } @else {
+                        <span class="font-semibold text-slate-800">
+                          {{
+                            row.percentage == null ? '—' : (row.percentage | number: '1.0-2') + ' %'
+                          }}
+                        </span>
+                      }
+                    </td>
+                  </tr>
+                } @empty {
+                  <tr>
+                    <td colspan="3" class="px-4 py-6 text-center text-slate-500">
+                      Aucune entité disponible.
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        </section>
+      }
+      <p class="rounded-lg bg-white p-3 text-[10px] leading-5 text-slate-500">
+        Clé CA (%) = CA de l’entité ÷ CA total des entités bénéficiaires ; clé Effectif (%) =
+        effectif de l’entité ÷ effectif total des entités bénéficiaires. L’écran affiche ces parts en
+        pourcentage ; la base reçoit le ratio (par exemple 2 % = 0,02). « Autre » permet de saisir
+        chaque part manuellement.
+      </p>
+      <div class="form-page-actions">
+        <button
+          type="button"
+          (click)="close()"
+          class="rounded-lg px-4 py-2 text-xs text-slate-600 hover:bg-slate-100"
+        >
+          Annuler</button
+        ><button
+          type="button"
+          (click)="save()"
+          [disabled]="saving()"
+          class="rounded-lg bg-green-700 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-50"
+        >
+          {{ saving() ? 'Enregistrement…' : 'Enregistrer la répartition' }}
+        </button>
+      </div>
+    </form>
+  
+</app-form-page>
+} @else {
+<div class="mx-auto max-w-7xl space-y-6">
+  <app-page-header icon="repartition" module="Répartition & contrôle" title="Règles de répartition CSP" description="Partagez le coût des services communs entre les structures selon une clé claire.">
+<app-data-actions ressource="repartition-csp" exportPermission="repartition_csp.exporter" [ids]="exportIds()" [importPermissions]="['repartition_csp.importer']" (importer)="importOpen.set(true)" />
+      @if (can('repartition_csp.creer')) {
+        <button
+          (click)="openCreate()"
+          class="rounded-xl bg-green-700 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600"
+        >
+          ＋ Nouvelle règle
+        </button>
+      }
+</app-page-header>
+  @if (error()) {
+    <p class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
+      {{ error() }}
+    </p>
+  }
+  @if (entityLookupError()) {
+    <p class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
+      {{ entityLookupError() }}
+    </p>
+  }
+  @if (activityLookupError()) {
+    <p class="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3 text-xs text-amber-200">
+      {{ activityLookupError() }}
+    </p>
+  }
+  <section class="stats-grid grid gap-3 sm:grid-cols-3">
+    <article class="rounded-2xl border border-slate-200 bg-white p-4">
+      <p class="text-[10px] uppercase tracking-wider text-slate-500">Règles configurées</p>
+      <p class="mt-2 text-2xl font-bold text-white">{{ rules().length }}</p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-4">
+      <p class="text-[10px] uppercase tracking-wider text-slate-500">Entités bénéficiaires</p>
+      <p class="mt-2 text-2xl font-bold text-blue-200">{{ beneficiaryCount() }}</p>
+    </article>
+    <article class="rounded-2xl border border-slate-200 bg-white p-4">
+      <p class="text-[10px] uppercase tracking-wider text-slate-500">Clés représentées</p>
+      <p class="mt-2 text-2xl font-bold text-white">{{ keyTypeCount() }}</p>
+    </article>
+  </section>
+  <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
+    <div class="grid gap-3 border-b border-slate-200 p-4 sm:grid-cols-[1fr_220px_auto]">
+      <input
+        [(ngModel)]="search"
+        placeholder="Filtrer par code, activité ou entité…"
+        class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-white outline-none placeholder:text-slate-600 focus:border-blue-500"
+      /><select
+        [(ngModel)]="keyFilter"
+        class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs text-slate-700"
+      >
+        <option value="">Toutes les clés</option>
+        @for (key of keyTypes(); track key) {
+          <option [value]="key">{{ key }}</option>
+        }</select
+      ><button
+        (click)="refresh()"
+        class="rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-700 hover:bg-slate-100"
+      >
+        ↻ Actualiser
+      </button>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="w-full min-w-[850px] text-left text-xs">
+        <thead class="bg-white text-[10px] uppercase tracking-wider text-slate-500">
+          <tr>
+            <th class="px-5 py-3">Allocation structure CSP</th>
+            <th class="px-4 py-3">Bénéficiaire</th>
+            <th class="px-4 py-3">Activité bénéficiaire</th>
+            <th class="px-4 py-3">Clé de répartition</th>
+            <th class="px-5 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-200/70">
+          @for (rule of filtered(); track rule.id) {
+            <tr class="hover:bg-slate-50">
+              <td class="px-5 py-3">
+                <p class="font-medium text-white">
+                  {{ allocationStructureLabel(rule.allocationStructureId, rule.activiteCspId) }}
+                </p>
+                <p class="mt-1 font-mono text-[9px] text-slate-500">
+                  {{ rule.allocationStructureId || rule.activiteCspId }}
+                </p>
+              </td>
+              <td class="px-4 py-3">
+                <span class="rounded-md bg-blue-500/10 px-2 py-1 text-[10px] text-blue-200">{{
+                  entityLabel(rule.entiteBeneficiaire)
+                }}</span>
+              </td>
+              <td class="px-4 py-3">
+                <p class="text-slate-800">{{ activityLabel(rule.activiteBeneficiaireId) }}</p>
+                <p class="mt-1 font-mono text-[9px] text-slate-500">
+                  {{ rule.activiteBeneficiaireId }}
+                </p>
+              </td>
+              <td class="px-4 py-3">
+                <p class="font-medium text-slate-800">{{ rule.cleType || 'Non définie' }}</p>
+                <p class="mt-1 text-[10px] text-slate-500">
+                  {{ displayedPercentage(rule) | number: '1.0-2' }} %
+                </p>
+              </td>
+              <td class="px-5 py-3">
+                <div class="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    (click)="showDetails('Règle de répartition CSP', rule)"
+                    class="inline-flex h-10 w-10 items-center justify-center rounded-lg text-blue-700 transition-colors hover:bg-blue-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-600 focus-visible:ring-offset-2"
+                    title="Voir les détails"
+                    aria-label="Voir les détails"
+                  >
+                    <svg
+                      aria-hidden="true"
+                      class="h-5 w-5"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="1.8"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    >
+                      <path
+                        d="M2.25 12s3.5-6.5 9.75-6.5 9.75 6.5 9.75 6.5-3.5 6.5-9.75 6.5S2.25 12 2.25 12Z"
+                      />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                  @if (can('repartition_csp.modifier')) {
+                    <button
+                      (click)="openEdit(rule)"
+                      class="inline-flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 text-slate-600 hover:bg-green-50 hover:text-green-700 focus-visible:ring-green-600"
+                      title="Modifier"
+                      aria-label="Modifier"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                      </svg>
+                    </button>
+                  }
+                  @if (can('repartition_csp.supprimer')) {
+                    <button
+                      (click)="remove(rule)"
+                      class="inline-flex h-10 w-10 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 text-rose-600 hover:bg-rose-50 hover:text-rose-700 focus-visible:ring-rose-600"
+                      title="Supprimer"
+                      aria-label="Supprimer"
+                    >
+                      <svg
+                        aria-hidden="true"
+                        class="h-5 w-5"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      >
+                        <path d="M3 6h18M8 6V4h8v2m2 0-.8 14H6.8L6 6m4 4v6m4-6v6" />
+                      </svg>
+                    </button>
+                  }
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="5" class="p-12 text-center">
+                <p class="text-sm font-medium text-white">Aucune règle de répartition</p>
+                <p class="mt-1 text-xs text-slate-500">
+                  Créez une règle pour associer une activité CSP à une entité bénéficiaire.
+                </p>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+    <div class="border-t border-slate-200 px-5 py-3 text-[10px] text-slate-500">
+      {{ filtered().length }} règle(s)
+    </div>
+  </section>
+</div>
+
+@if (detailRecord) {
+  <app-record-details-dialog
+    [title]="detailTitle"
+    [record]="detailRecord"
+    (close)="detailRecord = null"
+  />
+}
+}
+}

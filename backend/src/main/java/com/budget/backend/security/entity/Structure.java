@@ -5,8 +5,8 @@ import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import java.time.LocalDateTime;
-import java.util.UUID;
 
 @Entity
 @Table(name = "structures")
@@ -19,38 +19,45 @@ import java.util.UUID;
 public class Structure {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    @Column(name = "code", length = 20, nullable = false)
+    private String code;
 
-    @Column(unique = true, nullable = false, length = 50)
-    private String code; // Ex: DIR-IT-01
+    @Column(name = "nom", length = 150, nullable = false)
+    private String nom;
 
-    @Column(nullable = false, length = 150)
-    private String libelle; // Ex: DSI
 
-    @Column(name = "type_structure", nullable = false, length = 30)
-    private String typeStructure; // DIRECTION, DEPARTEMENT, SERVICE, AGENCE
+    @Column(length = 30)
+    private String telephone;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "parent_id")
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    private Structure parent;
+    @Column(length = 255)
+    private String adresse;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "direction_id")
-    @com.fasterxml.jackson.annotation.JsonIgnore
-    private Structure direction;
+    @Column(length = 150)
+    private String email;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entite_code", referencedColumnName = "code", nullable = false)
-    private Entite entite;
+    @Column(length = 100)
+    private String ville;
 
-    @Column(name = "responsable_id")
-    private UUID responsableId; // ID de l'utilisateur responsable
+    @Column(length = 100)
+    private String pays;
 
-    @Builder.Default
-    @Column(nullable = false)
-    private Boolean actif = true;
+    @Column(length = 30)
+    private String sigle;
+
+    @Column(name = "secteur_activite", length = 100)
+    private String secteurActivite;
+
+    @Column(name = "forme_juridique", length = 100)
+    private String formeJuridique;
+
+    @Column(name = "numero_fiscal", length = 100)
+    private String numeroFiscal;
+
+    @Column(name = "site_web", length = 255)
+    private String siteWeb;
+
+    @Column(length = 512)
+    private String logo;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -59,4 +66,10 @@ public class Structure {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @Transient
+    @JsonProperty("libelle")
+    public String getLibelle() {
+        return nom;
+    }
 }

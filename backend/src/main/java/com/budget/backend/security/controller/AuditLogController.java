@@ -18,7 +18,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/audit-logs")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AuditLogController {
 
     @Autowired
