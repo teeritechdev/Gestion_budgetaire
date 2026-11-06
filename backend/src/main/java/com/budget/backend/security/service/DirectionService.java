@@ -6,6 +6,7 @@ import com.budget.backend.security.dto.DirectionRequestDto;
 import com.budget.backend.security.dto.DirectionResponseDto;
 import com.budget.backend.security.entity.Direction;
 import com.budget.backend.security.entity.Structure;
+import com.budget.backend.security.repository.AffectationRepository;
 import com.budget.backend.security.repository.DirectionRepository;
 import com.budget.backend.security.repository.ServiceOrganisationnelRepository;
 import com.budget.backend.security.repository.StructureRepository;
@@ -22,21 +23,23 @@ public class DirectionService {
     private final DirectionRepository directionRepository;
     private final StructureRepository structureRepository;
     private final ServiceOrganisationnelRepository serviceRepository;
+    private final AffectationRepository affectationRepository;
 
     public DirectionService(
             DirectionRepository directionRepository,
             StructureRepository structureRepository,
-            ServiceOrganisationnelRepository serviceRepository) {
+            ServiceOrganisationnelRepository serviceRepository,
+            AffectationRepository affectationRepository) {
         this.directionRepository = directionRepository;
         this.structureRepository = structureRepository;
         this.serviceRepository = serviceRepository;
+        this.affectationRepository = affectationRepository;
     }
 
     @Transactional(readOnly = true)
     public List<DirectionResponseDto> lister(String structureCode, Boolean actif, String recherche) {
         return directionRepository.findAll().stream()
-                .filter(direction -> structureCode == null
-                        || structureCode.equalsIgnoreCase(direction.codeStructure()))
+                .filter(direction -> structureCode == null || direction.estRattacheeA(structureCode))
                 .filter(direction -> actif == null || direction.getActif().equals(actif))
                 .filter(direction -> recherche == null
                         || direction.getLibelle().toLowerCase().contains(recherche.toLowerCase())
@@ -55,14 +58,11 @@ public class DirectionService {
         if (directionRepository.existsByCode(request.code())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Une direction avec ce code existe déjà.");
         }
-        Structure structure = structureDeRattachement(request);
-
         Direction direction = Direction.builder()
                 .code(request.code().trim())
                 .libelle(request.libelle().trim())
-                .structure(structure)
+                .structure(structureDeRattachement(request))
                 .actif(request.actif())
-                .estCsp(Boolean.TRUE.equals(request.estCsp()))
                 .build();
         return toDto(directionRepository.save(direction));
     }
@@ -79,7 +79,6 @@ public class DirectionService {
         direction.setLibelle(request.libelle().trim());
         direction.setStructure(structure);
         direction.setActif(request.actif());
-        direction.setEstCsp(Boolean.TRUE.equals(request.estCsp()));
         return toDto(directionRepository.save(direction));
     }
 
@@ -91,6 +90,10 @@ public class DirectionService {
                     HttpStatus.CONFLICT,
                     "Cette direction ne peut pas être supprimée tant que des services y sont rattachés.");
         }
+        if (affectationRepository.existsByDirection_Id(id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Cette direction ne peut pas être supprimée tant que des salariés y sont affectés.");
+        }
         directionRepository.delete(direction);
     }
 
@@ -99,48 +102,36 @@ public class DirectionService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Direction introuvable."));
     }
 
-    /**
-     * Une direction CSP est transversale : elle ne doit pas être rattachée à une structure.
-     * Une direction classique doit l'être.
-     */
+    /** Une direction est rattachée à une seule structure, qui doit exister. */
     private Structure structureDeRattachement(DirectionRequestDto request) {
-        boolean csp = Boolean.TRUE.equals(request.estCsp());
-        boolean structureRenseignee = request.structureCode() != null && !request.structureCode().isBlank();
-        if (csp) {
-            if (structureRenseignee) {
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        "Une direction CSP sert toutes les structures du groupe : ne la rattachez à aucune structure.");
-            }
-            return null;
+        String code = request.structureCode() == null ? "" : request.structureCode().trim();
+        if (code.isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Rattachez la direction à une structure.");
         }
-        if (!structureRenseignee) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "La structure de rattachement est obligatoire pour une direction qui n'est pas CSP.");
-        }
-        return structureRepository.findById(request.structureCode().trim())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Structure introuvable."));
+        return structureRepository.findById(code)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "Structure introuvable : " + code + "."));
     }
 
     private DirectionResponseDto toDto(Direction direction) {
+        Structure structure = direction.getStructure();
         return new DirectionResponseDto(
                 direction.getId(),
                 direction.getCode(),
                 direction.getLibelle(),
-                direction.codeStructure(),
-                direction.getStructure() == null ? null : direction.getStructure().getNom(),
+                structure == null ? null : structure.getCode(),
+                structure == null ? null : structure.getNom(),
                 direction.getResponsableId(),
                 direction.getActif(),
-                Boolean.TRUE.equals(direction.getEstCsp()),
                 direction.getCreatedAt(),
                 direction.getUpdatedAt());
     }
 
     // --- Exports (liste fournie : lignes affichées à l'écran) ---
     public String exporterEnCsv(List<DirectionResponseDto> directions) {
-        StringBuilder csv = new StringBuilder("Code;Libelle;Code_Structure;Structure;Est_CSP;Actif;Date_Creation\n");
+        StringBuilder csv = new StringBuilder("Code;Libelle;Code_Structure;Structure;Actif;Date_Creation\n");
         for (DirectionResponseDto d : directions) {
             csv.append(CsvUtils.ligne(';', d.code(), d.libelle(), d.structureCode(), d.structureNom(),
-                    Boolean.TRUE.equals(d.estCsp()) ? "oui" : "non",
                     Boolean.TRUE.equals(d.actif()) ? "oui" : "non", d.createdAt()));
         }
         return csv.toString();
@@ -148,10 +139,9 @@ public class DirectionService {
 
     public byte[] exporterEnPdf(List<DirectionResponseDto> directions) {
         return PdfUtils.tableau("Liste des directions",
-                List.of("Code", "Libellé", "Structure", "CSP", "État"),
+                List.of("Code", "Libellé", "Structure", "État"),
                 directions.stream().map(d -> java.util.Arrays.<Object>asList(d.code(), d.libelle(),
-                        d.structureCode() == null ? "Toutes les structures (CSP)" : d.structureNom() + " (" + d.structureCode() + ")",
-                        Boolean.TRUE.equals(d.estCsp()) ? "Oui" : "Non",
+                        d.structureNom() + " (" + d.structureCode() + ")",
                         Boolean.TRUE.equals(d.actif()) ? "Active" : "Inactive")).toList());
     }
 }

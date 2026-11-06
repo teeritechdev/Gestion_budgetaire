@@ -8,6 +8,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { catchError, forkJoin, of } from 'rxjs';
 import { BudgetService } from '../../../core/services/budget.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -31,7 +32,7 @@ interface RevisionLineForm {
 @Component({
   selector: 'app-revisions',
   standalone: true,
-  imports: [PageHeaderComponent, AppIconComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, DatePipe, FormsModule],
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, AppIconComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, DatePipe, FormsModule],
   template: `
 @if (importOpen()) {
 <app-import-csv-page section="Révisions budgétaires" ressource="revisions-budgetaires" [format]="importFormats.revisions" (back)="importOpen.set(false)" (imported)="refresh()" />
@@ -45,36 +46,35 @@ interface RevisionLineForm {
         >
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-1.5 text-xs text-slate-700"
-              >Numéro de demande<input
+              >Numéro de demande <span class="champ-obligatoire" aria-hidden="true">*</span><input
                 required
                 maxlength="50"
                 [(ngModel)]="draft.numeroDemande"
                 name="numeroDemande"
                 class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 font-mono text-xs text-slate-900" /></label
             ><label class="space-y-1.5 text-xs text-slate-700"
-              >Exercice<select
+              >Exercice <span class="champ-obligatoire" aria-hidden="true">*</span><app-search-select
                 required
                 [(ngModel)]="draft.anneeExercice"
                 name="anneeExercice"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-slate-900"
+                placeholder="Choisir une année…"
+                [emptyValue]="null"
+                triggerClass="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-slate-900"
               >
-                <option [ngValue]="null">Choisir une année…</option>
                 @for (exercise of exercises(); track exercise.id) {
-                  <option [ngValue]="exercise.annee">
-                    {{ exercise.annee }} — {{ exercise.planStrategique?.libelle }}
-                  </option>
+                  <app-search-option [value]="exercise.annee" [label]="exercise.annee + ' — ' + (exercise.planStrategique?.libelle ?? '')" />
                 }
-              </select></label
+              </app-search-select></label
             ><label class="space-y-1.5 text-xs text-slate-700 sm:col-span-2"
-              >Motif<textarea
+              >Motif <span class="champ-obligatoire" aria-hidden="true">*</span><textarea
                 required
                 rows="2"
                 maxlength="2000"
                 [(ngModel)]="draft.motif"
                 name="motif"
-                placeholder="Justification du transfert ou de l’extension…"
                 class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-slate-900"
               ></textarea>
+              <span class="block text-[11px] font-normal text-slate-500">Justifiez le transfert ou l’extension demandé.</span>
             </label>
           </div>
           <div class="flex items-center justify-between">
@@ -121,7 +121,7 @@ interface RevisionLineForm {
                       <option value="EXTENSION">Extension budgétaire</option>
                     </select></label
                   ><label class="space-y-1 text-[10px] text-slate-700"
-                    >Montant<input
+                    >Montant <span class="champ-obligatoire" aria-hidden="true">*</span><input
                       required
                       type="number"
                       min="0.01"
@@ -140,36 +140,34 @@ interface RevisionLineForm {
                   >
                   @if (line.typeMouvement === 'VIREMENT_INTERNE') {
                     <label class="space-y-1 text-[10px] text-slate-700"
-                      >Allocation source<select
+                      >Allocation source <span class="champ-obligatoire" aria-hidden="true">*</span><app-search-select
                         required
                         [(ngModel)]="line.allocationSourceId"
                         [name]="'source-' + i"
-                        class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs text-slate-900"
+                        placeholder="Choisir la structure source…"
+                        triggerClass="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs text-slate-900"
                       >
-                        <option value="">Choisir la structure source…</option>
                         @for (allocation of sourceOptions(i); track allocation.id) {
-                          <option [value]="allocation.id">
-                            {{ allocationLabel(allocation) }} · disponible
-                            {{
-                              allocation.montantDisponible | number: '1.0-0'
-                            }} FCFA
-                          </option>
+                          <app-search-option
+                            [value]="allocation.id"
+                            [label]="allocationLabel(allocation) + ' · disponible ' + (allocation.montantDisponible | number: '1.0-0') + ' FCFA'"
+                          />
                         }
-                      </select></label
+                      </app-search-select></label
                     >
                   }
                   <label class="space-y-1 text-[10px] text-slate-700"
-                    >Allocation destination<select
+                    >Allocation destination <span class="champ-obligatoire" aria-hidden="true">*</span><app-search-select
                       required
                       [(ngModel)]="line.allocationDestinationId"
                       [name]="'destination-' + i"
-                      class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs text-slate-900"
+                      placeholder="Choisir la structure bénéficiaire…"
+                      triggerClass="w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-xs text-slate-900"
                     >
-                      <option value="">Choisir la structure bénéficiaire…</option>
                       @for (allocation of destinationOptions(); track allocation.id) {
-                        <option [value]="allocation.id">{{ allocationLabel(allocation) }}</option>
+                        <app-search-option [value]="allocation.id" [label]="allocationLabel(allocation)" />
                       }
-                    </select></label
+                    </app-search-select></label
                   >
                 </div>
               </div>
@@ -216,7 +214,7 @@ interface RevisionLineForm {
 } @else {
     <div class="mx-auto max-w-7xl space-y-6">
       <app-page-header icon="revisions" module="Répartition & contrôle" title="Révisions budgétaires" description="Demandez, validez et tracez les virements et extensions de crédits.">
-<app-data-actions ressource="revisions-budgetaires" exportPermission="revision.exporter" [ids]="exportIds()" [importPermissions]="['revision.importer']" (importer)="importOpen.set(true)" />
+<app-data-actions ressource="revisions-budgetaires" exportPermission="revision.exporter" [ids]="exportIds()" [importPermissions]="['revision.importer']" [importFormat]="importFormats.revisions" (importer)="importOpen.set(true)" />
           @if (can('revision.creer')) {
             <button
               (click)="openCreate()"

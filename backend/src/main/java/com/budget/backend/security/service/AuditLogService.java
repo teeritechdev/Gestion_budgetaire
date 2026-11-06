@@ -1,23 +1,25 @@
 package com.budget.backend.security.service;
 
 import com.budget.backend.common.CsvUtils;
+import com.budget.backend.security.dto.AuditLogDetailDto;
 import com.budget.backend.security.entity.AuditLog;
 import com.budget.backend.security.repository.AuditLogRepository;
-import com.lowagie.text.Document;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
+import com.budget.backend.security.entity.Salarie;
+import com.budget.backend.security.entity.Utilisateur;
+import com.budget.backend.security.repository.UtilisateurRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayOutputStream;
 import java.time.LocalDateTime;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -27,13 +29,49 @@ public class AuditLogService {
     @Autowired
     private AuditLogRepository auditLogRepository;
 
+    @Autowired
+    private UtilisateurRepository utilisateurRepository;
+
     // --- Lecture ---
+    /** Du plus récent au plus ancien. */
+    private static final Comparator<AuditLog> PLUS_RECENT_D_ABORD = Comparator.comparing(
+            AuditLog::getCreatedAt, Comparator.nullsLast(Comparator.reverseOrder()));
+
     public List<AuditLog> listerTousLesLogs() {
-        return auditLogRepository.findAll();
+        return auditLogRepository.findAll().stream().sorted(PLUS_RECENT_D_ABORD).toList();
     }
 
     public Optional<AuditLog> trouverParId(UUID id) {
         return auditLogRepository.findById(id);
+    }
+
+    /** Vue détaillée (même lecture des valeurs que le PDF). */
+    @Transactional(readOnly = true)
+    public Optional<AuditLogDetailDto> detail(UUID id) {
+        return auditLogRepository.findById(id).map(log -> {
+            Map<UUID, AuditLogPdfGenerator.Auteur> auteurs = auteurs(List.of(log));
+            AuditLogPdfGenerator.Auteur auteur = log.getUtilisateurId() == null ? null : auteurs.get(log.getUtilisateurId());
+            Map<String, String> avant = AuditLogPdfGenerator.valeursLisibles(log.getAnciennesValeurs());
+            Map<String, String> apres = AuditLogPdfGenerator.valeursLisibles(log.getNouvellesValeurs());
+            Set<String> noms = new LinkedHashSet<>(avant.keySet());
+            noms.addAll(apres.keySet());
+            List<AuditLogDetailDto.Champ> champs = noms.stream().map(nom -> {
+                String ancienne = avant.get(nom);
+                String nouvelle = apres.get(nom);
+                return new AuditLogDetailDto.Champ(nom, ancienne, nouvelle,
+                        ancienne != null && nouvelle != null && !ancienne.equals(nouvelle));
+            }).toList();
+            return new AuditLogDetailDto(log.getId(), log.getCreatedAt(), log.getTypeAction(), log.getNomTable(),
+                    log.getEnregistrementId(), log.getUtilisateurId(),
+                    AuditLogPdfGenerator.nomAuteur(log, auteurs),
+                    auteur == null ? null : auteur.username(),
+                    auteur == null ? null : auteur.matricule(),
+                    auteur == null ? null : auteur.role(),
+                    log.getAdresseIp(), log.getUserAgent(),
+                    AuditLogPdfGenerator.navigateur(log.getUserAgent()),
+                    AuditLogPdfGenerator.requete(log.getNouvellesValeurs(), log.getAnciennesValeurs()),
+                    champs, log.getAnciennesValeurs(), log.getNouvellesValeurs());
+        });
     }
 
     // --- Filtrage multicritères avancé ---
@@ -44,6 +82,7 @@ public class AuditLogService {
                 .filter(log -> nomTable == null || log.getNomTable().equalsIgnoreCase(nomTable))
                 .filter(log -> startDate == null || (log.getCreatedAt() != null && !log.getCreatedAt().isBefore(startDate)))
                 .filter(log -> endDate == null || (log.getCreatedAt() != null && !log.getCreatedAt().isAfter(endDate)))
+                .sorted(PLUS_RECENT_D_ABORD)
                 .collect(Collectors.toList());
     }
 
@@ -69,44 +108,23 @@ public class AuditLogService {
     }
 
     /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    @Transactional(readOnly = true)
     public byte[] exporterEnPdf(List<AuditLog> logs) {
-        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        return AuditLogPdfGenerator.generer(logs, auteurs(logs));
+    }
 
-        try {
-            Document document = new Document(PageSize.A4.rotate()); // Format paysage pour le journal d'audit
-            PdfWriter.getInstance(document, out);
-            document.open();
-
-            Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18);
-            Paragraph title = new Paragraph("Journal Officiel d'Audit & Traçabilité - UAB", titleFont);
-            title.setAlignment(Element.ALIGN_CENTER);
-            document.add(title);
-            document.add(new Paragraph(" "));
-
-            PdfPTable table = new PdfPTable(5);
-            table.setWidthPercentage(100);
-            table.setWidths(new float[]{3f, 3f, 3f, 3f, 3f});
-
-            table.addCell("Action");
-            table.addCell("Table");
-            table.addCell("ID Enregistrement");
-            table.addCell("Adresse IP");
-            table.addCell("Horodatage");
-
-            for (AuditLog log : logs) {
-                table.addCell(log.getTypeAction());
-                table.addCell(log.getNomTable());
-                table.addCell(log.getEnregistrementId());
-                table.addCell(log.getAdresseIp() != null ? log.getAdresseIp() : "");
-                table.addCell(log.getCreatedAt() != null ? log.getCreatedAt().toString() : "");
-            }
-
-            document.add(table);
-            document.close();
-        } catch (Exception e) {
-            throw new RuntimeException("Erreur génération PDF des logs d'audit : " + e.getMessage());
+    /** Auteurs des actions (nom, identifiant, matricule, rôle), chargés en une seule requête. */
+    private Map<UUID, AuditLogPdfGenerator.Auteur> auteurs(List<AuditLog> logs) {
+        Set<UUID> ids = logs.stream().map(AuditLog::getUtilisateurId).filter(Objects::nonNull).collect(Collectors.toSet());
+        Map<UUID, AuditLogPdfGenerator.Auteur> auteurs = new HashMap<>();
+        for (Utilisateur utilisateur : utilisateurRepository.findAllById(ids)) {
+            Salarie salarie = utilisateur.getSalarie();
+            auteurs.put(utilisateur.getId(), new AuditLogPdfGenerator.Auteur(
+                    salarie == null ? utilisateur.getUsername() : salarie.getPrenom() + " " + salarie.getNom(),
+                    utilisateur.getUsername(),
+                    salarie == null ? null : salarie.getMatricule(),
+                    utilisateur.getRole() == null ? null : utilisateur.getRole().getLibelle()));
         }
-
-        return out.toByteArray();
+        return auteurs;
     }
 }

@@ -14,7 +14,11 @@ public record SalarieResponseDto(
         String email,
         String poste,
         LocalDate dateEmbauche,
-        ServiceResponseDto service,
+        LocalDate dateNaissance,
+        String lieuNaissance,
+        String numeroCnib,
+        /** Affectation en cours la plus récente (null si le salarié n'est affecté nulle part). */
+        AffectationResumeDto affectation,
         UUID managerId,
         Boolean actif,
         LocalDateTime createdAt,

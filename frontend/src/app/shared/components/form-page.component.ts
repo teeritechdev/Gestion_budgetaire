@@ -3,7 +3,7 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 /**
  * Mise en page commune des formulaires en pleine page : fil d'Ariane, titre, retour à la liste.
  * Le formulaire est projeté tel quel ; sa barre d'actions utilise la classe `form-page-actions`
- * (barre fixée en bas de l'écran, voir styles.css).
+ * (barre placée à la fin du formulaire, voir styles.css).
  */
 @Component({
   selector: 'app-form-page',
@@ -16,16 +16,18 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
         <span class="font-semibold text-slate-800">{{ title }}</span>
       </nav>
 
-      <header class="mb-6 flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+      <header class="form-page-header mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           @if (mode) {
-            <p class="text-xs font-semibold uppercase tracking-wider text-green-700">{{ mode }}</p>
+            <span class="inline-flex items-center rounded-full border border-slate-200 bg-slate-100 px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider text-slate-600">{{ mode }}</span>
           }
-          <h1 class="mt-1 text-2xl font-bold text-slate-900">{{ title }}</h1>
+          <h1 class="mt-2 text-2xl font-bold text-slate-900">{{ title }}</h1>
           @if (subtitle) {
             <p class="mt-1 max-w-3xl text-sm text-slate-600">{{ subtitle }}</p>
           }
-          <p class="mt-2 text-xs text-slate-500">Les champs marqués d’un astérisque (*) sont obligatoires.</p>
+          <p class="mt-3 inline-flex items-center gap-1.5 rounded-md bg-slate-100 px-2.5 py-1 text-xs text-slate-600">
+            Les champs suivis d’un astérisque (<span class="champ-obligatoire">*</span>) doivent obligatoirement être renseignés.
+          </p>
         </div>
         <button type="button" (click)="back.emit()" class="inline-flex items-center gap-2 self-start rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100 sm:self-auto">
           <span aria-hidden="true">←</span> Retour à la liste
@@ -49,6 +51,7 @@ export class FormPageComponent implements OnInit {
   @Output() back = new EventEmitter<void>();
 
   ngOnInit(): void {
-    window.scrollTo({ top: 0 });
+    // Le défilement se fait dans la zone de contenu de l'application (voir app-layout).
+    (document.getElementById('app-main') ?? window).scrollTo({ top: 0 });
   }
 }

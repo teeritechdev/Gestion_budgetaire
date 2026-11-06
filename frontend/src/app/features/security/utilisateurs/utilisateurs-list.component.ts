@@ -7,6 +7,7 @@ import { RecordDetailsDialogComponent } from '../../../shared/components/record-
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { forkJoin } from 'rxjs';
 import { UtilisateurService } from '../../../core/services/utilisateur.service';
 import { ServiceOrganisationnelService } from '../../../core/services/service-organisationnel.service';
@@ -23,7 +24,7 @@ import { Role } from '../../../core/models/role.model';
 @Component({
   selector: 'app-utilisateurs-list',
   standalone: true,
-  imports: [PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, RecordDetailsDialogComponent, CommonModule, FormsModule],
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, RecordDetailsDialogComponent, CommonModule, FormsModule],
   template: `
 @if (importOpen()) {
 <app-import-csv-page section="Utilisateurs" [upload]="uploadImport" [format]="importFormats.utilisateurs" (back)="importOpen.set(false)" (imported)="loadInitialData()" />
@@ -33,22 +34,21 @@ import { Role } from '../../../core/models/role.model';
 <div>
             <form (ngSubmit)="saveUser()" class="space-y-4">
               <section class="space-y-4 rounded-xl border border-slate-200 p-4">
-                <div><h4 class="text-sm font-semibold text-slate-900">Salarié titulaire du compte</h4><p class="mt-1 text-xs text-slate-500">Le dossier du salarié (identité, poste, service) se modifie dans l’onglet Salariés.</p></div>
+                <div><h4 class="text-sm font-semibold text-slate-900">Salarié titulaire du compte</h4><p class="mt-1 text-xs text-slate-500">Le dossier du salarié se modifie dans l’onglet Salariés, son rattachement dans l’onglet Affectations.</p></div>
                 @if (isEditing()) {
                   <div class="rounded-xl bg-slate-50 p-3 text-xs text-slate-700">
                     <p class="font-semibold text-slate-900">{{ editingUser?.prenom }} {{ editingUser?.nom }}</p>
                     <p>{{ editingUser?.matricule }} · {{ editingUser?.email }}</p>
-                    <p>{{ editingUser?.service?.libelle || 'Non affecté' }}</p>
+                    <p>{{ editingUser?.affectation?.cibleLibelle || 'Non affecté' }}</p>
                   </div>
                 } @else {
                   <div>
-                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Salarié *</label>
-                    <select required [(ngModel)]="selectedSalarieId" (ngModelChange)="onSalarieChange($event)" name="salarieId" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500">
-                      <option [ngValue]="null" disabled>Sélectionner un salarié sans compte</option>
+                    <label class="mb-1.5 block text-xs font-medium text-slate-700">Salarié <span class="champ-obligatoire" aria-hidden="true">*</span></label>
+                    <app-search-select required [(ngModel)]="selectedSalarieId" (ngModelChange)="onSalarieChange($event)" name="salarieId" placeholder="Sélectionner un salarié sans compte" [emptyValue]="null" triggerClass="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500">
                       @for (salarie of salariesSansCompte(); track salarie.id) {
-                        <option [ngValue]="salarie.id">{{ salarie.prenom }} {{ salarie.nom }} — {{ salarie.matricule }} ({{ salarie.service.libelle }})</option>
+                        <app-search-option [value]="salarie.id" [label]="salarie.prenom + ' ' + salarie.nom + ' — ' + salarie.matricule + (salarie.affectation ? ' (' + salarie.affectation.cibleLibelle + ')' : '')" />
                       }
-                    </select>
+                    </app-search-select>
                     @if (!auth.hasPermission('salarie.lire')) {
                       <p class="mt-1 text-xs text-rose-600">La permission salarie.lire est nécessaire pour choisir un salarié.</p>
                     } @else if (!salariesSansCompte().length) {
@@ -57,8 +57,9 @@ import { Role } from '../../../core/models/role.model';
                   </div>
                 }
                 <div>
-                  <label class="mb-1.5 block text-xs font-medium text-slate-700">Nom d’utilisateur *</label>
-                  <input type="text" required maxlength="150" [(ngModel)]="username" name="username" autocomplete="username" placeholder="Ex. : prenom.nom@uab.bf" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  <label class="mb-1.5 block text-xs font-medium text-slate-700">Nom d’utilisateur <span class="champ-obligatoire" aria-hidden="true">*</span></label>
+                  <input type="text" required maxlength="150" [(ngModel)]="username" name="username" autocomplete="username" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500" />
+                  <p class="mt-1 text-[11px] text-slate-500">Identifiant de connexion, généralement l’adresse e-mail (ex. prenom.nom@uab.bf).</p>
                 </div>
               </section>
 
@@ -68,7 +69,7 @@ import { Role } from '../../../core/models/role.model';
                 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label class="block text-xs font-medium text-slate-700 mb-1.5">
-                    {{ isEditing() ? 'Nouveau mot de passe (laisser vide pour conserver)' : 'Mot de passe *' }}
+                    {{ isEditing() ? 'Nouveau mot de passe (laisser vide pour conserver)' : 'Mot de passe' }}@if (!isEditing()) { <span class="champ-obligatoire" aria-hidden="true">*</span> }
                   </label>
                   <input
                     type="password"
@@ -77,13 +78,13 @@ import { Role } from '../../../core/models/role.model';
                     minlength="8"
                     [(ngModel)]="passwordInput"
                     name="password"
-                    placeholder="8 caractères minimum"
                     class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
+                  <p class="mt-1 text-[11px] text-slate-500">8 caractères minimum.</p>
                 </div>
                 @if (!isEditing() || passwordInput) {
                   <div>
-                    <label class="block text-xs font-medium text-slate-700 mb-1.5">Confirmer le mot de passe *</label>
+                    <label class="block text-xs font-medium text-slate-700 mb-1.5">Confirmer le mot de passe <span class="champ-obligatoire" aria-hidden="true">*</span></label>
                     <input
                       type="password"
                       autocomplete="new-password"
@@ -91,7 +92,6 @@ import { Role } from '../../../core/models/role.model';
                       minlength="8"
                       [(ngModel)]="passwordConfirmation"
                       name="passwordConfirmation"
-                      placeholder="Saisir à nouveau le mot de passe"
                       class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                     />
                     @if (passwordConfirmation && passwordInput !== passwordConfirmation) {
@@ -105,7 +105,7 @@ import { Role } from '../../../core/models/role.model';
               <section class="space-y-4 rounded-xl border border-slate-200 p-4">
                 <div><h4 class="text-sm font-semibold text-slate-900">Accès</h4><p class="mt-1 text-xs text-slate-500">Rôle système attribué au compte.</p></div>
                 <div>
-                  <label class="block text-xs font-medium text-slate-700 mb-1.5">Rôle Système *</label>
+                  <label class="block text-xs font-medium text-slate-700 mb-1.5">Rôle Système <span class="champ-obligatoire" aria-hidden="true">*</span></label>
                   <select
                     required
                     [(ngModel)]="selectedRoleId"
@@ -156,7 +156,7 @@ import { Role } from '../../../core/models/role.model';
 } @else {
     <div class="space-y-6 max-w-7xl mx-auto">
       <app-page-header icon="utilisateurs" module="Administration" title="Utilisateurs" description="Les comptes de connexion : identifiant, rôle et accès à la plateforme.">
-<app-data-actions ressource="utilisateurs" exportPermission="utilisateur.exporter" [ids]="exportIds()" [importPermissions]="['utilisateur.importer']" (importer)="importOpen.set(true)" />
+<app-data-actions ressource="utilisateurs" exportPermission="utilisateur.exporter" [ids]="exportIds()" [importPermissions]="['utilisateur.importer']" [importFormat]="importFormats.utilisateurs" (importer)="importOpen.set(true)" />
 
           <button
             [hidden]="!auth.hasPermission('utilisateur.creer')"
@@ -280,7 +280,7 @@ import { Role } from '../../../core/models/role.model';
                     </td>
                     <td class="py-3.5 px-4 font-mono text-slate-700 font-medium">{{ user.matricule }}</td>
                     <td class="py-3.5 px-4 text-slate-700">
-                      {{ user.service?.libelle || 'Non affecté' }}
+                      {{ user.affectation?.cibleLibelle || 'Non affecté' }}
                     </td>
                     <td class="py-3.5 px-4">
                       <span class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-blue-500/10 text-blue-300 border border-blue-500/20">
@@ -477,7 +477,7 @@ export class UtilisateursListComponent implements OnInit {
   onSalarieChange(salarieId: string | null) {
     const salarie = this.salaries().find(s => s.id === salarieId);
     // Identifiant proposé par défaut : l'e-mail professionnel du salarié.
-    if (salarie && !this.username) {
+    if (salarie?.email && !this.username) {
       this.username = salarie.email;
     }
   }

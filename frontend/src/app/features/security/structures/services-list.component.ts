@@ -8,6 +8,7 @@ import { FormPageComponent } from '../../../shared/components/form-page.componen
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
@@ -24,7 +25,7 @@ import { errorMessage } from './directions-list.component';
 @Component({
   selector: 'app-services-list',
   standalone: true,
-  imports: [PageHeaderComponent, RecordDetailsDialogComponent, RowActionsComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, FormsModule],
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, RecordDetailsDialogComponent, RowActionsComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, FormsModule],
   template: `
 @if (importOpen()) {
 <app-import-csv-page section="Services" [format]="importFormats.services" (back)="importOpen.set(false)" (imported)="refresh()" />
@@ -33,23 +34,16 @@ import { errorMessage } from './directions-list.component';
 <app-form-page section="Services" [title]="editingId() ? 'Modifier le service' : 'Créer un service'" [mode]="editingId() ? 'Modification' : 'Création'" subtitle="Un service est rattaché à une direction ; les salariés y sont affectés." (back)="formOpen.set(false)">
 <form (ngSubmit)="save()">
   <section class="space-y-4">
-    <h3>Identification</h3>
+    <label class="block space-y-1.5 text-xs font-medium text-slate-700">Direction <span class="champ-obligatoire" aria-hidden="true">*</span>
+      <app-search-select required [(ngModel)]="draft.directionId" name="directionId" placeholder="Choisir une direction">
+        @for (direction of directions(); track direction.id) { <app-search-option [value]="direction.id" [label]="direction.libelle + ' (' + direction.code + ') · ' + structuresLabel(direction)" /> }
+      </app-search-select>
+    </label>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Code *<input required maxlength="50" [(ngModel)]="draft.code" name="code" placeholder="Ex. : SVC-COMPTA" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono uppercase"></label>
-      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Libellé *<input required maxlength="150" [(ngModel)]="draft.libelle" name="libelle" placeholder="Ex. : Service comptabilité" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"></label>
+      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Code <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="50" [(ngModel)]="draft.code" name="code" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono uppercase"><span class="block text-[11px] font-normal text-slate-500">Code unique, ex. SVC-COMPTA.</span></label>
+      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Libellé <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="150" [(ngModel)]="draft.libelle" name="libelle" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"></label>
     </div>
-  </section>
-  <section class="space-y-4">
-    <h3>Rattachement</h3>
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Direction *
-        <select required [(ngModel)]="draft.directionId" name="directionId" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500">
-          <option value="">Choisir une direction</option>
-          @for (direction of directions(); track direction.id) { <option [value]="direction.id">{{ direction.libelle }} ({{ direction.structureCode || 'CSP · toutes structures' }})</option> }
-        </select>
-      </label>
-      <label class="flex items-center gap-2 self-end pb-3 text-xs text-slate-700"><input type="checkbox" [(ngModel)]="draft.actif" name="actif" class="h-4 w-4"> Service actif</label>
-    </div>
+    <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" [(ngModel)]="draft.actif" name="actif" class="h-4 w-4"> Service actif</label>
   </section>
   <div class="form-page-actions">
     <button type="button" (click)="formOpen.set(false)" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100">Annuler</button>
@@ -61,7 +55,7 @@ import { errorMessage } from './directions-list.component';
 } @else {
     <div class="mx-auto max-w-7xl space-y-6">
       <app-page-header icon="services" module="Administration" title="Services" description="Les services opérationnels rattachés à chaque direction.">
-<app-data-actions ressource="services" exportPermission="service.exporter" [ids]="exportIds()" [importPermissions]="['service.importer']" (importer)="importOpen.set(true)" />@if (auth.hasPermission('service.creer')) {
+<app-data-actions ressource="services" exportPermission="service.exporter" [ids]="exportIds()" [importPermissions]="['service.importer']" [importFormat]="importFormats.services" (importer)="importOpen.set(true)" />@if (auth.hasPermission('service.creer')) {
           <button type="button" (click)="openForm()" [disabled]="!directions().length" class="whitespace-nowrap rounded-xl bg-green-700 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-50">＋ Nouveau service</button>
         }
 </app-page-header>
@@ -93,7 +87,7 @@ import { errorMessage } from './directions-list.component';
                   <td class="p-3 font-mono">{{ service.code }}</td>
                   <td class="p-3 font-medium text-white">{{ service.libelle }}</td>
                   <td class="p-3">{{ service.directionLibelle }} ({{ service.directionCode }})</td>
-                  <td class="p-3">{{ service.structureCode || 'Toutes (direction CSP)' }}</td>
+                  <td class="p-3">{{ service.structureCode || '—' }}</td>
                   <td class="p-3">{{ service.actif ? 'Actif' : 'Inactif' }}</td>
                   <td class="p-3">
                     <app-row-actions [label]="service.code"
@@ -158,6 +152,10 @@ export class ServicesListComponent implements OnInit {
       this.directions.set(data.directions as Direction[]);
       this.loading.set(false);
     });
+  }
+
+  structuresLabel(direction: Direction): string {
+    return direction.structureCode || '—';
   }
 
   visible(): ServiceOrganisationnel[] {

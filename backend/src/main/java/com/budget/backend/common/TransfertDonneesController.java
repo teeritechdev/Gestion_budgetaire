@@ -28,6 +28,7 @@ import com.budget.backend.budget.service.PlanStrategiqueService;
 import com.budget.backend.budget.service.RepartitionCspRuleService;
 import com.budget.backend.budget.service.RevisionBudgetaireService;
 import com.budget.backend.security.dto.DirectionResponseDto;
+import com.budget.backend.security.dto.AffectationResponseDto;
 import com.budget.backend.security.dto.SalarieResponseDto;
 import com.budget.backend.security.dto.ServiceResponseDto;
 import com.budget.backend.security.dto.UtilisateurResponseDto;
@@ -38,6 +39,7 @@ import com.budget.backend.security.repository.RoleRepository;
 import com.budget.backend.security.repository.StructureRepository;
 import com.budget.backend.security.repository.UtilisateurRepository;
 import com.budget.backend.security.security.CustomPermissionEvaluator;
+import com.budget.backend.security.service.AffectationService;
 import com.budget.backend.security.service.AuditLogService;
 import com.budget.backend.security.service.AuditService;
 import com.budget.backend.security.service.DirectionService;
@@ -133,6 +135,7 @@ public class TransfertDonneesController {
             StructureService structureService, StructureRepository structureRepository,
             DirectionService directionService, ServiceOrganisationnelService serviceService,
             SalarieService salarieService, UtilisateurService utilisateurService,
+            AffectationService affectationService,
             RoleService roleService, RoleRepository roleRepository,
             PermissionService permissionService, PermissionRepository permissionRepository,
             OrganisationImportService organisationImportService) {
@@ -201,6 +204,9 @@ public class TransfertDonneesController {
         exports.put("salaries", new Export("salarie.exporter", "salaries",
                 (ids, a) -> salarieService.exporterEnCsv(ordonner(uuids(ids), salarieService.lister(null, null, null), SalarieResponseDto::id)),
                 (ids, a) -> salarieService.exporterEnPdf(ordonner(uuids(ids), salarieService.lister(null, null, null), SalarieResponseDto::id))));
+        exports.put("affectations", new Export("affectation.exporter", "affectations",
+                (ids, a) -> affectationService.exporterEnCsv(ordonner(uuids(ids), affectationService.lister(null, null, null, null, null), AffectationResponseDto::id)),
+                (ids, a) -> affectationService.exporterEnPdf(ordonner(uuids(ids), affectationService.lister(null, null, null, null, null), AffectationResponseDto::id))));
         exports.put("utilisateurs", new Export("utilisateur.exporter", "utilisateurs",
                 (ids, a) -> utilisateurService.exporterEnCsv(ordonner(uuids(ids), utilisateurService.listerTousLesUtilisateurs(), UtilisateurResponseDto::id)),
                 (ids, a) -> utilisateurService.exporterEnPdf(ordonner(uuids(ids), utilisateurService.listerTousLesUtilisateurs(), UtilisateurResponseDto::id))));
@@ -229,6 +235,7 @@ public class TransfertDonneesController {
                 (f, a) -> budgetImportService.importerRevisions(f, utilisateurId(a))));
         imports.put("directions", new Import(List.of("direction.importer"), (f, a) -> organisationImportService.importerDirections(f)));
         imports.put("services", new Import(List.of("service.importer"), (f, a) -> organisationImportService.importerServices(f)));
+        imports.put("affectations", new Import(List.of("affectation.importer"), (f, a) -> organisationImportService.importerAffectations(f)));
         imports.put("salaries", new Import(List.of("salarie.importer"), (f, a) -> organisationImportService.importerSalaries(f)));
     }
 

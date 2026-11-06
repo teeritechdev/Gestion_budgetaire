@@ -16,7 +16,7 @@ public interface SalarieRepository extends JpaRepository<Salarie, UUID> {
     boolean existsByMatriculeAndIdNot(String matricule, UUID id);
     boolean existsByEmail(String email);
     boolean existsByEmailAndIdNot(String email, UUID id);
-    boolean existsByService_Id(UUID serviceId);
+    boolean existsByNumeroCnib(String numeroCnib);
+    boolean existsByNumeroCnibAndIdNot(String numeroCnib, UUID id);
     boolean existsByManager_Id(UUID managerId);
-    List<Salarie> findByService_Id(UUID serviceId);
 }

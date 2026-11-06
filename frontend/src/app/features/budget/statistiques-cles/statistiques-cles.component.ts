@@ -8,6 +8,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { BudgetService } from '../../../core/services/budget.service';
@@ -23,7 +24,7 @@ import {
 @Component({
   selector: 'app-statistiques-cles',
   standalone: true,
-  imports: [PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, RecordDetailsDialogComponent, CommonModule, FormsModule],
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, RecordDetailsDialogComponent, CommonModule, FormsModule],
   template: `
 @if (importOpen()) {
 <app-import-csv-page section="Clés statistiques" ressource="statistiques-cles" [format]="importFormats.statistiques" (back)="importOpen.set(false)" (imported)="refresh()" />
@@ -42,19 +43,19 @@ import {
           }
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-1.5 text-xs text-slate-600"
-              >Entité<select
+              >Entité <span class="champ-obligatoire" aria-hidden="true">*</span><app-search-select
                 required
                 [(ngModel)]="form.entiteCode"
                 name="entiteCode"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-white"
+                placeholder="Sélectionner une entité…"
+                triggerClass="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-white"
               >
-                <option value="">Sélectionner une entité…</option>
                 @for (entity of entities(); track entity.code) {
-                  <option [value]="entity.code">{{ entity.code }} — {{ entity.nom }}</option>
+                  <app-search-option [value]="entity.code" [label]="entity.code + ' — ' + entity.nom" />
                 }
-              </select></label
+              </app-search-select></label
             ><label class="space-y-1.5 text-xs text-slate-600"
-              >Année<input
+              >Année <span class="champ-obligatoire" aria-hidden="true">*</span><input
                 required
                 type="number"
                 min="2000"
@@ -117,7 +118,7 @@ import {
 } @else {
     <div class="mx-auto max-w-7xl space-y-6">
       <app-page-header icon="statistiques" module="Répartition & contrôle" title="Clés statistiques" description="Effectifs et chiffres d’affaires de référence qui alimentent les clés de répartition.">
-<app-data-actions ressource="statistiques-cles" exportPermission="statistique_cle.exporter" [ids]="exportIds()" [importPermissions]="['statistique_cle.importer']" (importer)="importOpen.set(true)" />
+<app-data-actions ressource="statistiques-cles" exportPermission="statistique_cle.exporter" [ids]="exportIds()" [importPermissions]="['statistique_cle.importer']" [importFormat]="importFormats.statistiques" (importer)="importOpen.set(true)" />
           @if (can('statistique_cle.creer')) {
             <button
               (click)="openCreate()"

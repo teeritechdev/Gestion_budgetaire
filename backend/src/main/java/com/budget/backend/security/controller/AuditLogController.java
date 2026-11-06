@@ -1,5 +1,6 @@
 package com.budget.backend.security.controller;
 
+import com.budget.backend.security.dto.AuditLogDetailDto;
 import com.budget.backend.security.entity.AuditLog;
 import com.budget.backend.security.service.AuditLogService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +37,14 @@ public class AuditLogController {
             return ResponseEntity.ok(auditLogService.filtrerAuditLogs(utilisateurId, typeAction, nomTable, startDate, endDate));
         }
         return ResponseEntity.ok(auditLogService.listerTousLesLogs());
+    }
+
+    @GetMapping("/{id}/detail")
+    @PreAuthorize("hasPermission(null, 'audit.lire')")
+    public ResponseEntity<AuditLogDetailDto> detail(@PathVariable UUID id) {
+        return auditLogService.detail(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping("/{id}")

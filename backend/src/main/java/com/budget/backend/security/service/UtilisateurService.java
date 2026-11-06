@@ -1,7 +1,6 @@
 package com.budget.backend.security.service;
 
 import com.budget.backend.common.CsvUtils;
-import com.budget.backend.security.dto.ServiceResponseDto;
 import com.budget.backend.security.dto.UtilisateurRequestDto;
 import com.budget.backend.security.dto.UtilisateurResponseDto;
 import com.budget.backend.security.entity.Role;
@@ -47,6 +46,7 @@ public class UtilisateurService {
     private final PasswordEncoder passwordEncoder;
     private final AuditService auditService;
     private final PrivilegeGuard privilegeGuard;
+    private final AffectationService affectationService;
 
     public UtilisateurService(
             UtilisateurRepository utilisateurRepository,
@@ -55,7 +55,8 @@ public class UtilisateurService {
             RoleRepository roleRepository,
             PasswordEncoder passwordEncoder,
             AuditService auditService,
-            PrivilegeGuard privilegeGuard) {
+            PrivilegeGuard privilegeGuard,
+            AffectationService affectationService) {
         this.utilisateurRepository = utilisateurRepository;
         this.salarieRepository = salarieRepository;
         this.serviceRepository = serviceRepository;
@@ -63,6 +64,7 @@ public class UtilisateurService {
         this.passwordEncoder = passwordEncoder;
         this.auditService = auditService;
         this.privilegeGuard = privilegeGuard;
+        this.affectationService = affectationService;
     }
 
     @Transactional(readOnly = true)
@@ -79,14 +81,14 @@ public class UtilisateurService {
     public List<UtilisateurResponseDto> filtrerUtilisateurs(UUID serviceId, UUID roleId, Boolean actif, String recherche) {
         String terme = recherche == null ? null : recherche.toLowerCase();
         return utilisateurRepository.findAll().stream()
-                .filter(user -> serviceId == null || user.getSalarie().getService().getId().equals(serviceId))
+                .filter(user -> serviceId == null || affectationService.estAffecteAuService(user.getSalarie().getId(), serviceId))
                 .filter(user -> roleId == null || user.getRole().getId().equals(roleId))
                 .filter(user -> actif == null || user.getActif().equals(actif))
                 .filter(user -> terme == null
                         || user.getUsername().toLowerCase().contains(terme)
                         || user.getSalarie().getNom().toLowerCase().contains(terme)
                         || user.getSalarie().getPrenom().toLowerCase().contains(terme)
-                        || user.getSalarie().getEmail().toLowerCase().contains(terme)
+                        || (user.getSalarie().getEmail() != null && user.getSalarie().getEmail().toLowerCase().contains(terme))
                         || user.getSalarie().getMatricule().toLowerCase().contains(terme))
                 .map(this::toDto)
                 .toList();
@@ -102,6 +104,9 @@ public class UtilisateurService {
         if (request.salarieId() == null) {
             validerProfilSalarie(request);
             savedSalarie = salarieRepository.save(creerSalarie(request));
+            if (request.serviceId() != null) {
+                affectationService.affecterAuService(savedSalarie, trouverService(request.serviceId()), savedSalarie.getDateEmbauche());
+            }
         } else {
             savedSalarie = trouverSalarie(request.salarieId());
         }
@@ -112,6 +117,9 @@ public class UtilisateurService {
         Utilisateur utilisateur = Utilisateur.builder()
                 .username(request.username().trim())
                 .motDePasseHash(passwordEncoder.encode(motDePasseClair))
+                // Mot de passe choisi par l'administrateur : à changer à la première connexion.
+                .doitChangerMotDePasse(true)
+                .motDePasseModifieLe(java.time.Instant.now())
                 .salarie(savedSalarie)
                 .role(roleAttribue)
                 .actif(request.actif())
@@ -140,7 +148,7 @@ public class UtilisateurService {
         Salarie salarie = utilisateur.getSalarie();
         Map<String, Object> anciennesValeurs = Map.of(
                 "username", utilisateur.getUsername(),
-                "email", salarie.getEmail(),
+                "email", value(salarie.getEmail()),
                 "matricule", salarie.getMatricule(),
                 "actif", utilisateur.getActif());
         if (request.salarieId() != null && !request.salarieId().equals(salarie.getId())) {
@@ -153,12 +161,18 @@ public class UtilisateurService {
         } else if (request.salarieId() == null && request.matricule() != null) {
             validerProfilSalarie(request);
             mettreAJourSalarie(salarie, request);
+            if (request.serviceId() != null) {
+                affectationService.affecterAuService(salarie, trouverService(request.serviceId()), salarie.getDateEmbauche());
+            }
         }
         utilisateur.setUsername(request.username().trim());
         utilisateur.setRole(nouveauRole);
         utilisateur.setActif(request.actif());
         if (nouveauMotDePasse != null && !nouveauMotDePasse.isBlank()) {
+            // Réinitialisé par un administrateur : temporaire, et les sessions ouvertes sont fermées.
             utilisateur.setMotDePasseHash(passwordEncoder.encode(nouveauMotDePasse));
+            utilisateur.setDoitChangerMotDePasse(true);
+            utilisateur.setMotDePasseModifieLe(java.time.Instant.now());
         }
 
         Utilisateur updated = utilisateurRepository.save(utilisateur);
@@ -190,10 +204,10 @@ public class UtilisateurService {
     /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
     public String exporterEnCsv(List<UtilisateurResponseDto> users) {
         StringBuilder csv = new StringBuilder(
-                "ID;Username;Matricule;Nom;Prenom;Email;Poste;Date_Embauche;Service;Role;Actif;Date_Creation\n");
+                "ID;Username;Matricule;Nom;Prenom;Email;Poste;Date_Embauche;Affectation;Role;Actif;Date_Creation\n");
         for (UtilisateurResponseDto user : users) {
             csv.append(CsvUtils.ligne(';', user.id(), user.username(), user.matricule(), user.nom(), user.prenom(),
-                    user.email(), value(user.poste()), user.dateEmbauche(), user.service().code(),
+                    user.email(), value(user.poste()), user.dateEmbauche(), user.affectation() == null ? null : user.affectation().chemin(),
                     user.role().getCode(), user.actif(), user.createdAt()));
         }
         return csv.toString();
@@ -218,7 +232,7 @@ public class UtilisateurService {
             document.add(new Paragraph(" "));
             PdfPTable table = new PdfPTable(7);
             table.setWidthPercentage(100);
-            for (String column : List.of("Username", "Matricule", "Nom", "Prénom", "Email", "Service", "Rôle")) {
+            for (String column : List.of("Username", "Matricule", "Nom", "Prénom", "Email", "Affectation", "Rôle")) {
                 table.addCell(column);
             }
             for (UtilisateurResponseDto user : users) {
@@ -226,8 +240,8 @@ public class UtilisateurService {
                 table.addCell(user.matricule());
                 table.addCell(user.nom());
                 table.addCell(user.prenom());
-                table.addCell(user.email());
-                table.addCell(user.service().libelle());
+                table.addCell(value(user.email()));
+                table.addCell(user.affectation() == null ? "" : user.affectation().cibleLibelle());
                 table.addCell(user.role().getCode());
             }
             document.add(table);
@@ -253,7 +267,7 @@ public class UtilisateurService {
                 String[] data = line.split(";", -1);
                 if (data.length < 8) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                            "Chaque ligne CSV doit contenir au moins matricule, nom, prénom, email, mot de passe, code service, code rôle et poste.");
+                            "Chaque ligne CSV doit contenir 8 colonnes : matricule, nom, prénom, email, mot de passe, code service (peut être vide), code rôle et poste.");
                 }
                 String matricule = data[0].trim();
                 String nom = data[1].trim();
@@ -264,20 +278,33 @@ public class UtilisateurService {
                 String roleCode = data[6].trim();
                 String poste = data[7].trim();
                 String username = data.length > 8 && !data[8].isBlank() ? data[8].trim() : email;
-                LocalDate dateEmbauche = data.length > 9 && !data[9].isBlank()
-                        ? LocalDate.parse(data[9].trim()) : LocalDate.now();
+                if (username.isBlank()) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Identifiant manquant pour " + matricule + " : renseignez l'e-mail ou le nom d'utilisateur (9e colonne).");
+                }
+                LocalDate dateEmbauche = data.length > 9 && !data[9].isBlank() ? LocalDate.parse(data[9].trim()) : null;
+                String sexe = data.length > 10 ? sexeImporte(data[10]) : null;
+                LocalDate dateNaissance = data.length > 11 && !data[11].isBlank() ? LocalDate.parse(data[11].trim()) : null;
+                String lieuNaissance = data.length > 12 && !data[12].isBlank() ? data[12].trim() : null;
+                String numeroCnib = data.length > 13 && !data[13].isBlank() ? data[13].trim() : null;
+                if (sexe == null) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "Sexe manquant ou invalide pour " + matricule + " (11e colonne) : HOMME ou FEMME (H / F).");
+                }
                 if (password.length() < 8) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "Chaque mot de passe importé doit contenir au moins 8 caractères.");
                 }
-                ServiceOrganisationnel service = serviceRepository.findByCode(serviceCode)
+                // Service facultatif : s'il est indiqué, le salarié y est affecté.
+                ServiceOrganisationnel service = serviceCode.isEmpty() ? null : serviceRepository.findByCode(serviceCode)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Service introuvable pour l'import : " + serviceCode));
                 Role role = roleRepository.findByCode(roleCode)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                                 "Rôle introuvable pour l'import : " + roleCode));
                 UtilisateurRequestDto request = new UtilisateurRequestDto(username, null, matricule, nom, prenom,
-                        "NON_RENSEIGNE", null, email, poste, dateEmbauche, service.getId(), null, role.getId(), true);
+                        sexe, null, email, poste, dateEmbauche, dateNaissance, lieuNaissance, numeroCnib,
+                        service == null ? null : service.getId(), null, role.getId(), true);
                 creerUtilisateur(request, password, utilisateurIdStr);
                 count++;
             }
@@ -301,10 +328,21 @@ public class UtilisateurService {
         salarie.setPrenom(request.prenom().trim());
         salarie.setSexe(request.sexe());
         salarie.setTelephone(request.telephone());
-        salarie.setEmail(request.email().trim().toLowerCase());
-        salarie.setPoste(request.poste());
+        salarie.setEmail(request.email() == null || request.email().isBlank()
+                ? null : request.email().trim().toLowerCase());
+        salarie.setPoste(request.poste().trim());
         salarie.setDateEmbauche(request.dateEmbauche());
-        salarie.setService(trouverService(request.serviceId()));
+        salarie.setDateNaissance(request.dateNaissance());
+        salarie.setLieuNaissance(request.lieuNaissance() == null || request.lieuNaissance().isBlank()
+                ? null : request.lieuNaissance().trim());
+        String cnib = normaliserCnib(request.numeroCnib());
+        boolean cnibPris = cnib != null && (salarie.getId() == null
+                ? salarieRepository.existsByNumeroCnib(cnib)
+                : salarieRepository.existsByNumeroCnibAndIdNot(cnib, salarie.getId()));
+        if (cnibPris) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Un salarié avec ce numéro CNIB existe déjà.");
+        }
+        salarie.setNumeroCnib(cnib);
         if (request.managerId() != null && request.managerId().equals(salarie.getId())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Un salarié ne peut pas être son propre manager.");
         }
@@ -322,7 +360,7 @@ public class UtilisateurService {
             boolean matriculeExiste = salarieId == null
                     ? salarieRepository.existsByMatricule(request.matricule().trim())
                     : salarieRepository.existsByMatriculeAndIdNot(request.matricule().trim(), salarieId);
-            boolean emailExiste = request.email() != null && (salarieId == null
+            boolean emailExiste = request.email() != null && !request.email().isBlank() && (salarieId == null
                     ? salarieRepository.existsByEmail(request.email().trim().toLowerCase())
                     : salarieRepository.existsByEmailAndIdNot(request.email().trim().toLowerCase(), salarieId));
             if (matriculeExiste || emailExiste) {
@@ -335,17 +373,47 @@ public class UtilisateurService {
         }
     }
 
+    /** HOMME / FEMME, également H, F, M, masculin, féminin ; null si la valeur n'est pas reconnue. */
+    private static String sexeImporte(String valeur) {
+        String cle = java.text.Normalizer.normalize(valeur.trim(), java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "").toLowerCase(java.util.Locale.ROOT);
+        return switch (cle) {
+            case "homme", "h", "m", "masculin" -> "HOMME";
+            case "femme", "f", "feminin" -> "FEMME";
+            default -> null;
+        };
+    }
+
+    /** Majuscules, sans espaces ; null si non renseigné. */
+    private static String normaliserCnib(String numeroCnib) {
+        if (numeroCnib == null || numeroCnib.isBlank()) return null;
+        return numeroCnib.replaceAll("\\s", "").toUpperCase(java.util.Locale.ROOT);
+    }
+
     private void validerProfilSalarie(UtilisateurRequestDto request) {
         if (request.matricule() == null || request.matricule().isBlank()
                 || request.nom() == null || request.nom().isBlank()
                 || request.prenom() == null || request.prenom().isBlank()
-                || request.sexe() == null || request.email() == null || request.email().isBlank()
-                || request.dateEmbauche() == null
-                || request.serviceId() == null) {
+                || request.sexe() == null
+                || request.poste() == null || request.poste().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                    "Le dossier salarié doit préciser matricule, identité, e-mail, date d'embauche et service.");
+                    "Le dossier salarié doit préciser matricule, nom, prénom, sexe et poste.");
         }
-        if (!java.util.Set.of("FEMME", "HOMME", "AUTRE", "NON_RENSEIGNE").contains(request.sexe())) {
+        if (request.dateNaissance() != null && !request.dateNaissance().isBefore(LocalDate.now())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La date de naissance doit être antérieure à aujourd'hui.");
+        }
+        if (request.dateNaissance() != null && request.dateEmbauche() != null
+                && !request.dateNaissance().isBefore(request.dateEmbauche())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La date de naissance doit être antérieure à la date d'embauche.");
+        }
+        String cnib = normaliserCnib(request.numeroCnib());
+        if (cnib != null && !cnib.matches("B\\d{5,15}")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Le numéro CNIB doit commencer par B suivi de chiffres (ex. B12345678).");
+        }
+        if (!java.util.Set.of("FEMME", "HOMME").contains(request.sexe())) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sélectionnez une valeur valide pour le sexe.");
         }
         if (request.telephone() != null && request.telephone().length() > 30) {
@@ -387,16 +455,9 @@ public class UtilisateurService {
         return new UtilisateurResponseDto(user.getId(), user.getUsername(), salarie.getId(),
                 salarie.getMatricule(), salarie.getNom(), salarie.getPrenom(), salarie.getSexe(),
                 salarie.getTelephone(), salarie.getEmail(), salarie.getPoste(), salarie.getDateEmbauche(),
-                toServiceDto(salarie.getService()),
+                affectationService.resumeActuelle(salarie),
                 salarie.getManager() == null ? null : salarie.getManager().getId(),
                 user.getRole(), user.getActif(), user.getCreatedAt(), user.getUpdatedAt());
-    }
-
-    private ServiceResponseDto toServiceDto(ServiceOrganisationnel service) {
-        return new ServiceResponseDto(service.getId(), service.getCode(), service.getLibelle(),
-                service.getDirection().getId(), service.getDirection().getCode(),
-                service.getDirection().getLibelle(), service.getDirection().codeStructure(),
-                service.getResponsableId(), service.getActif(), service.getCreatedAt(), service.getUpdatedAt());
     }
 
     private String value(String text) {

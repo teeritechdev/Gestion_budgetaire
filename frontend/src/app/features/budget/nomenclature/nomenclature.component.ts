@@ -5,6 +5,7 @@ import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angula
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable, forkJoin, of } from 'rxjs';
@@ -72,7 +73,7 @@ const FILTRE = 'bg-slate-50 border border-slate-200 rounded-xl text-xs text-slat
 @Component({
   selector: 'app-nomenclature',
   standalone: true,
-  imports: [PageHeaderComponent, AppIconComponent, RowActionsComponent, CommonModule, FormsModule, DataActionsComponent, FormPageComponent, ImportCsvPageComponent, RecordDetailsDialogComponent],
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, AppIconComponent, RowActionsComponent, CommonModule, FormsModule, DataActionsComponent, FormPageComponent, ImportCsvPageComponent, RecordDetailsDialogComponent],
   template: `
 @if (importOpen()) {
   <app-import-csv-page section="Nomenclature budgétaire" [ressource]="onglet().importRessource" [format]="onglet().importFormat"
@@ -82,41 +83,23 @@ const FILTRE = 'bg-slate-50 border border-slate-200 rounded-xl text-xs text-slat
     [subtitle]="formOnglet().description" (back)="closeForm()">
     <form (ngSubmit)="save()">
       <section class="space-y-4">
-        <h3>Identification</h3>
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <label class="block space-y-1.5 text-xs font-medium text-slate-700">Code *
-            <input required maxlength="50" [(ngModel)]="form.code" name="code" [placeholder]="codeExemple()" class="${INPUT} font-mono uppercase">
-            <span class="block text-[11px] font-normal text-slate-500">Unique dans la nomenclature, ex. {{ codeExemple() }}.</span>
-          </label>
-          <label class="block space-y-1.5 text-xs font-medium text-slate-700">Libellé *
-            <input required maxlength="200" [(ngModel)]="form.libelle" name="libelle" placeholder="Intitulé de l’élément" class="${INPUT}">
-          </label>
-        </div>
-        <label class="block space-y-1.5 text-xs font-medium text-slate-700">Description
-          <textarea rows="4" maxlength="3000" [(ngModel)]="form.description" name="description" placeholder="Finalité, résultats attendus, périmètre…" class="${INPUT} resize-y"></textarea>
-          <span class="block text-right text-[11px] font-normal text-slate-500">{{ form.description.length }}/3000</span>
-        </label>
-      </section>
-
-      @if (formType() !== 'OS') {
-        <section class="space-y-4">
-          <h3>Rattachement</h3>
+        @if (formType() !== 'OS') {
           <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <label class="block space-y-1.5 text-xs font-medium text-slate-700">{{ formType() === 'OP' ? 'Objectif stratégique parent *' : 'Objectif stratégique (filtre)' }}
-              <select [(ngModel)]="form.osId" (ngModelChange)="onFormOsChange()" name="osId" [required]="formType() === 'OP'" class="${INPUT}">
-                <option value="">{{ formType() === 'OP' ? 'Choisir un OS…' : 'Tous les OS' }}</option>
-                @for (os of osList(); track os.id) { <option [value]="os.id">{{ os.codeOs }} — {{ os.libelle }}</option> }
-              </select>
+            <label class="block space-y-1.5 text-xs font-medium text-slate-700">{{ formType() === 'OP' ? 'Objectif stratégique parent' : 'Objectif stratégique (filtre)' }}@if (formType() === 'OP') { <span class="champ-obligatoire" aria-hidden="true">*</span> }
+              <app-search-select [(ngModel)]="form.osId" (ngModelChange)="onFormOsChange()" name="osId" [required]="formType() === 'OP'" triggerClass="${INPUT}"
+                [placeholder]="formType() === 'OP' ? 'Choisir un OS…' : 'Tous les OS'" [emptyLabel]="formType() === 'OP' ? null : 'Tous les OS'">
+                @for (os of osList(); track os.id) { <app-search-option [value]="os.id" [label]="os.codeOs + ' — ' + os.libelle" /> }
+              </app-search-select>
               @if (formType() === 'AC') {
                 <span class="block text-[11px] font-normal text-slate-500">Sert uniquement à restreindre la liste des OP : l’activité est rattachée à l’OP, pas directement à l’OS.</span>
               }
             </label>
             @if (formType() === 'AC') {
-              <label class="block space-y-1.5 text-xs font-medium text-slate-700">Objectif opérationnel parent *
-                <select required [(ngModel)]="form.opId" (ngModelChange)="onFormOpChange()" name="opId" class="${INPUT}">
-                  <option value="">{{ form.osId ? 'Choisir un OP de cet OS…' : 'Choisir un OP…' }}</option>
-                  @for (op of opsDuFormulaire(); track op.id) { <option [value]="op.id">{{ op.codeOp }} — {{ op.libelle }}</option> }
-                </select>
+              <label class="block space-y-1.5 text-xs font-medium text-slate-700">Objectif opérationnel parent <span class="champ-obligatoire" aria-hidden="true">*</span>
+                <app-search-select required [(ngModel)]="form.opId" (ngModelChange)="onFormOpChange()" name="opId" triggerClass="${INPUT}"
+                  [placeholder]="form.osId ? 'Choisir un OP de cet OS…' : 'Choisir un OP…'">
+                  @for (op of opsDuFormulaire(); track op.id) { <app-search-option [value]="op.id" [label]="op.codeOp + ' — ' + op.libelle" /> }
+                </app-search-select>
                 @if (!opsDuFormulaire().length) {
                   <span class="block text-[11px] font-normal text-amber-700">{{ form.osId ? 'Aucun OP n’est rattaché à cet OS : choisissez un autre OS ou créez l’OP dans le sous-onglet Objectifs opérationnels.' : 'Aucun OP disponible : créez-en un dans le sous-onglet Objectifs opérationnels.' }}</span>
                 } @else {
@@ -130,8 +113,21 @@ const FILTRE = 'bg-slate-50 border border-slate-200 rounded-xl text-xs text-slat
               Rattachement : <span class="font-mono">{{ osDeOp(op)?.codeOs || '—' }}</span> › <span class="font-mono font-semibold">{{ op.codeOp }}</span> {{ op.libelle }} › cette activité
             </p>
           }
-        </section>
-      }
+        }
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <label class="block space-y-1.5 text-xs font-medium text-slate-700">Code <span class="champ-obligatoire" aria-hidden="true">*</span>
+            <input required maxlength="50" [(ngModel)]="form.code" name="code" class="${INPUT} font-mono uppercase">
+            <span class="block text-[11px] font-normal text-slate-500">Unique dans la nomenclature, ex. {{ codeExemple() }}.</span>
+          </label>
+          <label class="block space-y-1.5 text-xs font-medium text-slate-700">Libellé <span class="champ-obligatoire" aria-hidden="true">*</span>
+            <input required maxlength="200" [(ngModel)]="form.libelle" name="libelle" class="${INPUT}">
+          </label>
+        </div>
+        <label class="block space-y-1.5 text-xs font-medium text-slate-700">Description
+          <textarea rows="4" maxlength="3000" [(ngModel)]="form.description" name="description" class="${INPUT} resize-y"></textarea>
+          <span class="flex justify-between gap-3 text-[11px] font-normal text-slate-500"><span>Finalité, résultats attendus, périmètre.</span><span>{{ form.description.length }}/3000</span></span>
+        </label>
+      </section>
 
       <div class="form-page-actions">
         <button type="button" (click)="closeForm()" [disabled]="saving()" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100">Annuler</button>
@@ -145,7 +141,7 @@ const FILTRE = 'bg-slate-50 border border-slate-200 rounded-xl text-xs text-slat
   <div class="mx-auto max-w-7xl space-y-6">
     <app-page-header icon="nomenclature" [module]="'Nomenclature budgétaire · ' + tab()" [title]="onglet().libelle" [description]="onglet().description">
 <app-data-actions [ressource]="onglet().exportRessource" [exportPermission]="onglet().exportPermission"
-          [ids]="exportIds()" [importPermissions]="onglet().importPermissions" (importer)="importOpen.set(true)" />
+          [ids]="exportIds()" [importPermissions]="onglet().importPermissions" [importFormat]="onglet().importFormat" (importer)="importOpen.set(true)" />
         @if (can(onglet().creer)) {
           <button type="button" (click)="openCreate(tab())" class="whitespace-nowrap rounded-xl bg-green-700 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">
             ＋ Nouvel{{ tab() === 'AC' ? 'le activité' : ' ' + tab() }}

@@ -18,6 +18,13 @@ body {
   color: #18324f;
 }
 
+/* Pas d'effet « élastique » qui décale l'en-tête lors d'un défilement en butée. */
+html,
+body,
+.app-main {
+  overscroll-behavior: none;
+}
+
 body {
   font-size: 1rem;
   line-height: 1.55;
@@ -125,8 +132,9 @@ a:focus-visible {
   background-color: #fff !important;
 }
 
+/* Cartes de statistiques des listes : liseré supérieur discret (et non plus une barre latérale épaisse). */
 .stats-grid > * {
-  border-left: 4px solid #16a34a !important;
+  box-shadow: inset 0 3px 0 #15803d, 0 1px 2px rgb(16 40 70 / 5%), 0 4px 14px rgb(16 40 70 / 5%) !important;
 }
 
 .app-header {
@@ -179,71 +187,203 @@ aside nav a:hover span {
   line-height: 1;
 }
 
-.dashboard-welcome {
-  background-color: #14532d !important;
-  border-color: #052e16 !important;
+
+/* ==========================================================================
+   Formulaires en pleine page (app-form-page)
+   Blocs en cartes avec en-tête, champs contrastés, focus et erreurs visibles.
+   ========================================================================== */
+:root {
+  --form-border: #c3cfdd;
+  --form-field-border: #9fb0c4;
+  --form-field-border-hover: #6f86a1;
+  --form-accent: #15803d;
+  --form-accent-ring: rgb(21 128 61 / 18%);
+  --form-error: #c62828;
+  --form-error-ring: rgb(198 40 40 / 15%);
+  --form-header-bg: #f3f6fa;
 }
 
-.dashboard-welcome h1 {
-  color: #fff !important;
-}
-
-.dashboard-welcome .text-green-100 {
-  color: #dcfce7 !important;
-}
-
-.dashboard-welcome .text-green-50 {
-  color: #f0fdf4 !important;
-}
-
-/* Formulaires en pleine page (app-form-page). */
-.form-page-card {
-  background-color: #fff;
-  border: 1px solid #dce4ee;
-  border-radius: 0.875rem;
-  padding: 1.5rem;
-}
-
-.form-page-body form > section,
-.form-page-body .form-page-section {
-  background-color: #fff;
-  border: 1px solid #dce4ee !important;
-  border-radius: 0.875rem;
+/* Blocs : cartes blanches bien délimitées. */
+.form-page-card,
+.form-page-body section:not(.form-page-card section),
+.form-page-body form:not(:has(section)):not(.form-page-card):not(.form-page-card form) {
+  background-color: #fff !important;
+  border: 1px solid var(--form-border) !important;
+  border-radius: 0.75rem !important;
   padding: 1.5rem !important;
+  box-shadow: 0 1px 2px rgb(20 43 70 / 6%), 0 2px 8px rgb(20 43 70 / 4%);
 }
 
-.form-page-body form > section + section {
-  margin-top: 1.25rem;
+.form-page-body form > section + section,
+.form-page-body form > * + section {
+  margin-top: 1.5rem !important;
 }
 
-.form-page-body form > section h3,
-.form-page-body form > section h4 {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #18324f;
+/* En-tête de bloc : bandeau gris clair, liseré vert, séparé du contenu. */
+.form-page-body section:not(.form-page-card section) > h3:first-child,
+.form-page-body section:not(.form-page-card section) > h4:first-child,
+.form-page-body section:not(.form-page-card section) > div:first-child:has(> h4) {
+  margin: -1.5rem -1.5rem 1.5rem !important;
+  padding: 0.85rem 1.5rem !important;
+  background-color: var(--form-header-bg);
+  border-bottom: 1px solid var(--form-border);
+  border-radius: 0.75rem 0.75rem 0 0;
 }
 
-/* Barre d'actions toujours visible en bas de l'écran. */
+.form-page-body section > h3:first-child,
+.form-page-body section > h4:first-child,
+.form-page-body section > div:first-child > h4 {
+  font-size: 0.95rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em;
+  color: #14304f !important;
+}
+
+/* Libellés : au-dessus du champ, lisibles et hiérarchisés. */
+.form-page-body label {
+  font-weight: 600 !important;
+  color: #2b4461 !important;
+}
+
+.form-page-body label > span,
+.form-page-body label p {
+  font-weight: 400;
+}
+
+/* Champs de saisie, listes et liste avec recherche (app-search-select).
+   :where() garde une priorité faible pour que les états (focus, erreur, désactivé) l'emportent. */
+.form-page-body :where(
+  input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="color"]),
+  select,
+  textarea,
+  app-search-select > div > button
+) {
+  display: block;
+  width: 100%;
+  min-height: 2.75rem;
+  margin-top: 0.4rem;
+  padding: 0.55rem 0.85rem !important;
+  background-color: #fff !important;
+  border: 1px solid var(--form-field-border) !important;
+  border-radius: 0.5rem !important;
+  box-shadow: inset 0 1px 2px rgb(20 43 70 / 5%);
+  color: #14304f !important;
+  font-size: 0.95rem !important;
+  font-weight: 400 !important;
+  line-height: 1.5 !important;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.form-page-body app-search-select > div > button {
+  display: flex;
+}
+
+/* Champ de recherche dans la liste déroulante : plus compact, sans marge. */
+.form-page-body app-search-select > div > div input {
+  min-height: 2.35rem;
+  margin-top: 0;
+}
+
+.form-page-body textarea {
+  min-height: 5.5rem;
+  resize: vertical;
+}
+
+.form-page-body input::placeholder,
+.form-page-body textarea::placeholder {
+  color: #8494a8;
+  opacity: 1;
+}
+
+.form-page-body input:not([type="checkbox"]):not([type="radio"]):not(:disabled):hover,
+.form-page-body select:not(:disabled):hover,
+.form-page-body textarea:not(:disabled):hover,
+.form-page-body app-search-select > div > button:not(:disabled):hover {
+  border-color: var(--form-field-border-hover) !important;
+}
+
+.form-page-body input:not([type="checkbox"]):not([type="radio"]):focus,
+.form-page-body select:focus,
+.form-page-body textarea:focus,
+.form-page-body app-search-select > div > button:focus {
+  outline: none !important;
+  border-color: var(--form-accent) !important;
+  box-shadow: 0 0 0 3px var(--form-accent-ring) !important;
+}
+
+.form-page-body input:disabled,
+.form-page-body select:disabled,
+.form-page-body textarea:disabled,
+.form-page-body input[readonly],
+.form-page-body app-search-select > div > button:disabled {
+  background-color: #eef2f6 !important;
+  border-color: #cfd8e3 !important;
+  color: #5d6f84 !important;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 1 !important;
+}
+
+/* Erreurs : affichées après passage dans le champ ou à la validation du formulaire. */
+.form-page-body .ng-invalid.ng-touched:not(form):not(app-search-select):not(app-date-picker),
+.form-page-body form.ng-submitted .ng-invalid:not(app-search-select):not(app-date-picker),
+.form-page-body app-search-select.ng-invalid.ng-touched > div > button,
+.form-page-body form.ng-submitted app-search-select.ng-invalid > div > button {
+  border-color: var(--form-error) !important;
+  box-shadow: 0 0 0 3px var(--form-error-ring) !important;
+}
+
+/* Cases à cocher et boutons radio aux couleurs de l'application. */
+.form-page-body input[type="checkbox"],
+.form-page-body input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: var(--form-accent);
+  cursor: pointer;
+}
+
+/* Options encadrées (ex. « Direction CSP ») : zone cliquable mise en valeur. */
+.form-page-body label[class~="border"]:has(> input[type="checkbox"]) {
+  background-color: #f8fafc !important;
+  border-color: var(--form-border) !important;
+  padding: 0.9rem 1rem !important;
+  cursor: pointer;
+}
+
+.form-page-body label[class~="border"]:has(> input[type="checkbox"]:checked) {
+  background-color: #f3f6fa !important;
+  border-color: var(--form-field-border) !important;
+}
+
+/* Grilles de champs : espacement régulier entre colonnes et lignes. */
+.form-page-body section .grid,
+.form-page-card > .grid,
+.form-page-card form > .grid {
+  column-gap: 1.5rem !important;
+  row-gap: 1.25rem !important;
+}
+
+/* Barre d'actions placée à la fin du formulaire (visible une fois en bas de la page). */
 .form-page-actions {
-  position: sticky;
-  bottom: 0;
-  z-index: 10;
+  position: static;
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.75rem;
-  margin: 1.5rem -0.25rem 0;
-  padding: 1rem 1.25rem;
+  margin: 1.5rem 0 0;
+  padding: 1rem 1.5rem;
   background-color: #fff;
-  border: 1px solid #dce4ee;
-  border-radius: 0.875rem;
-  box-shadow: 0 -6px 16px rgb(20 43 70 / 6%);
+  border: 1px solid var(--form-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 2px rgb(20 43 70 / 6%);
 }
 
 .form-page-actions button {
-  min-height: 2.5rem;
-  padding-left: 1.25rem !important;
-  padding-right: 1.25rem !important;
+  min-height: 2.75rem;
+  padding-left: 1.4rem !important;
+  padding-right: 1.4rem !important;
+  font-weight: 600 !important;
 }
 
 /* Sous-onglets de la barre latérale (ex. Nomenclature › OS / OP / AC). */
@@ -263,3 +403,614 @@ aside nav a.bg-green-700 .sidebar-nav-icon,
 aside nav a:hover .sidebar-nav-icon {
   color: #fff !important;
 }
+
+/* En-tête des formulaires : carte avec liseré vert. */
+.form-page-header {
+  background-color: #fff;
+  border: 1px solid var(--form-border);
+  border-radius: 0.75rem;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 1px 2px rgb(20 43 70 / 6%);
+}
+
+/* Libellé séparé du champ (<label> puis <input>) : pas de double espacement. */
+.form-page-body label + :is(input, select, textarea) {
+  margin-top: 0.15rem;
+}
+
+/* Vue détaillée du journal d'audit : blocs d'informations libellé / valeur. */
+.audit-detail-bloc {
+  border: 1px solid #d5dee9;
+  border-radius: 0.75rem;
+  padding: 1rem 1.1rem;
+  background-color: #fff;
+}
+
+.audit-detail-bloc > h4 {
+  margin-bottom: 0.65rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #586b81;
+}
+
+.audit-detail-bloc dl > div {
+  display: grid;
+  grid-template-columns: 9.5rem 1fr;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-top: 1px solid #eef2f6;
+}
+
+.audit-detail-bloc dl > div:first-child {
+  border-top: 0;
+}
+
+.audit-detail-bloc dt {
+  font-size: 0.85rem;
+  color: #586b81;
+}
+
+.audit-detail-bloc dd {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #18324f;
+}
+
+/* ==========================================================================
+   Sélecteur de date (app-date-picker)
+   ========================================================================== */
+.form-page-body app-date-picker .date-picker {
+  margin-top: 0.4rem;
+}
+
+.form-page-body app-date-picker input.date-picker-input {
+  margin-top: 0;
+  padding-right: 2.75rem !important;
+}
+
+.date-picker-jour,
+.date-picker-cellule {
+  color: #18324f;
+  font-weight: 500;
+  transition: background-color 120ms ease, color 120ms ease;
+}
+
+.date-picker-jour:not(:disabled):hover,
+.date-picker-cellule:hover {
+  background-color: #eef2f7;
+}
+
+.date-picker-jour-hors-mois {
+  color: #a3b1c2;
+}
+
+.date-picker-jour:disabled {
+  color: #c8d1dc;
+  cursor: not-allowed;
+  text-decoration: line-through;
+}
+
+.date-picker-jour-aujourdhui {
+  box-shadow: inset 0 0 0 1px #15803d;
+  font-weight: 700;
+}
+
+.date-picker-jour-actif {
+  outline: 2px solid rgb(21 128 61 / 45%);
+  outline-offset: -2px;
+}
+
+.date-picker-jour-choisi,
+.date-picker-jour-choisi:hover {
+  background-color: #15803d !important;
+  color: #fff !important;
+  font-weight: 700;
+}
+
+/* Erreur : bordure rouge sur le champ, pas sur l'élément hôte. */
+.form-page-body app-date-picker.ng-invalid.ng-touched input.date-picker-input,
+.form-page-body form.ng-submitted app-date-picker.ng-invalid input.date-picker-input {
+  border-color: var(--form-error) !important;
+  box-shadow: 0 0 0 3px var(--form-error-ring) !important;
+}
+
+/* La grille du calendrier garde son propre espacement (pas celui des grilles de champs). */
+.form-page-body .date-picker-panneau .grid {
+  column-gap: 0.125rem !important;
+  row-gap: 0.125rem !important;
+}
+
+/* Astérisque des champs obligatoires, dans tous les formulaires. */
+.champ-obligatoire {
+  margin-left: 0.15rem;
+  color: #dc2626 !important;
+  font-weight: 700 !important;
+}
+
+/* ==========================================================================
+   Profil utilisateur : avatar, menu de l'en-tête, page « Mon profil »
+   ========================================================================== */
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 9999px;
+  background-color: #dcfce7;
+  color: #14532d;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  user-select: none;
+}
+
+.avatar-sm { width: 2.25rem; height: 2.25rem; font-size: 0.8rem; }
+.avatar-md { width: 2.75rem; height: 2.75rem; font-size: 0.95rem; }
+.avatar-lg { width: 4rem; height: 4rem; font-size: 1.25rem; }
+.avatar-xl { width: 7rem; height: 7rem; font-size: 2rem; }
+
+/* Le panneau du menu garde des couleurs lisibles (l'en-tête force le blanc). */
+.app-header .menu-utilisateur-panneau,
+.app-header .menu-utilisateur-panneau * {
+  color: #18324f !important;
+}
+
+.app-header .menu-utilisateur-panneau .text-slate-500 {
+  color: #64748b !important;
+}
+
+.app-header .menu-utilisateur-panneau .avatar {
+  color: #14532d !important;
+}
+
+.menu-utilisateur-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  text-align: left;
+}
+
+.menu-utilisateur-item svg {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+  opacity: 0.75;
+}
+
+.menu-utilisateur-item:hover,
+.menu-utilisateur-item:focus-visible {
+  background-color: #f1f5f9;
+  outline: none;
+}
+
+.app-header .menu-utilisateur-panneau .menu-utilisateur-deconnexion,
+.app-header .menu-utilisateur-panneau .menu-utilisateur-deconnexion * {
+  color: #b91c1c !important;
+}
+
+/* Page « Mon profil » */
+.profil-bandeau {
+  background:
+    radial-gradient(circle at 15% 20%, rgb(255 255 255 / 18%) 0, transparent 45%),
+    linear-gradient(120deg, #14532d 0%, #15803d 55%, #4d9e6a 100%);
+}
+
+.profil-avatar .avatar {
+  border: 4px solid #fff;
+  box-shadow: 0 4px 14px rgb(20 43 70 / 18%);
+}
+
+.profil-onglet {
+  position: relative;
+  padding: 0.85rem 0.9rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #586b81;
+  white-space: nowrap;
+}
+
+.profil-onglet:hover {
+  color: #18324f;
+}
+
+.profil-onglet-actif {
+  color: #14532d;
+}
+
+.profil-onglet-actif::after {
+  content: "";
+  position: absolute;
+  right: 0.5rem;
+  bottom: -1px;
+  left: 0.5rem;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background-color: #15803d;
+}
+
+.profil-carte {
+  border: 1px solid #d5dee9;
+  border-radius: 0.9rem;
+  background-color: #fff;
+  padding: 1.25rem 1.35rem;
+  box-shadow: 0 1px 2px rgb(20 43 70 / 5%);
+}
+
+.profil-carte > h2 {
+  margin-bottom: 0.9rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #14304f;
+}
+
+.profil-carte dl > div {
+  display: grid;
+  grid-template-columns: minmax(8rem, 38%) 1fr;
+  gap: 0.75rem;
+  padding: 0.55rem 0;
+  border-top: 1px solid #eef2f6;
+}
+
+.profil-carte dl > div:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.profil-carte dt {
+  font-size: 0.85rem;
+  color: #64748b;
+}
+
+.profil-carte dd {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 500;
+  color: #18324f;
+}
+
+.profil-formulaire app-password-input,
+.auth-formulaire app-password-input {
+  display: block;
+  margin-top: 0.4rem;
+  font-weight: 400;
+}
+
+.profil-formulaire input,
+.auth-formulaire input {
+  min-height: 2.75rem;
+  border-color: #9fb0c4 !important;
+}
+
+.profil-formulaire input:focus,
+.auth-formulaire input:focus {
+  outline: none;
+  border-color: #15803d !important;
+  box-shadow: 0 0 0 3px rgb(21 128 61 / 18%);
+}
+
+/* Photo de profil : zone de dépôt et recadrage */
+.photo-depot {
+  border-color: #c3cfdd;
+  background-color: #f8fafc;
+  transition: border-color 140ms ease, background-color 140ms ease;
+}
+
+.photo-depot:hover,
+.photo-depot-actif {
+  border-color: #15803d;
+  background-color: #f0fdf4;
+}
+
+.photo-cadre {
+  cursor: grab;
+}
+
+.photo-cadre:active {
+  cursor: grabbing;
+}
+
+.photo-cadre:focus-visible {
+  outline: 3px solid rgb(21 128 61 / 45%);
+  outline-offset: 3px;
+}
+
+.photo-masque {
+  box-shadow: 0 0 0 9999px rgb(15 23 42 / 55%), inset 0 0 0 2px rgb(255 255 255 / 85%);
+}
+
+.photo-zoom {
+  accent-color: #15803d;
+}
+
+/* Mot de passe oublié : étapes */
+.auth-etape {
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid #c3cfdd;
+  background-color: #fff;
+  color: #64748b;
+  font-size: 0.8rem;
+}
+
+.auth-etape-active {
+  border-color: #15803d;
+  background-color: #15803d;
+  color: #fff !important;
+}
+
+.auth-etape-faite {
+  border-color: #86c79d;
+  background-color: #dcfce7;
+  color: #14532d;
+}
+
+
+/* Avatar sans photo : silhouette d'utilisateur. */
+.avatar {
+  background-color: #e2e8f0;
+  color: #64748b;
+}
+
+.avatar-silhouette {
+  width: 62%;
+  height: 62%;
+  margin-top: 12%;
+}
+
+/* En-tête : bouton rond discret (fond translucide, silhouette blanche) ; la photo remplit le cercle. */
+.app-header .menu-utilisateur-bouton {
+  padding: 0;
+  border: 1px solid rgb(255 255 255 / 40%) !important;
+  transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.app-header .menu-utilisateur-bouton:hover,
+.app-header .menu-utilisateur-bouton[aria-expanded="true"] {
+  border-color: rgb(255 255 255 / 85%) !important;
+  background-color: transparent;
+  box-shadow: 0 0 0 3px rgb(255 255 255 / 18%);
+}
+
+.app-header .menu-utilisateur-bouton .avatar {
+  width: 2rem;
+  height: 2rem;
+  background-color: rgb(255 255 255 / 14%);
+  box-shadow: none;
+}
+
+.app-header .menu-utilisateur-bouton .avatar,
+.app-header .menu-utilisateur-bouton .avatar * {
+  color: #fff !important;
+}
+
+.app-header .menu-utilisateur-panneau .avatar,
+.app-header .menu-utilisateur-panneau .avatar * {
+  color: #64748b !important;
+}
+
+/* ==========================================================================
+   Pages publiques (connexion, mot de passe oublié)
+   ========================================================================== */
+.auth-marque {
+  background:
+    radial-gradient(circle at 85% 10%, rgb(255 255 255 / 12%) 0, transparent 40%),
+    radial-gradient(circle at 10% 95%, rgb(255 255 255 / 8%) 0, transparent 45%),
+    linear-gradient(150deg, #0f3d22 0%, #14532d 45%, #15803d 100%);
+}
+
+/* Le style global remappe text-white : le panneau de marque fixe ses propres couleurs. */
+.auth-marque,
+.auth-marque * {
+  color: #fff !important;
+}
+
+.auth-marque .text-green-100 { color: #dcfce7 !important; }
+.auth-marque .text-green-50 { color: #f0fdf4 !important; }
+.auth-marque .text-green-800 { color: #166534 !important; }
+
+.auth-marque::after {
+  content: "";
+  position: absolute;
+  right: -6rem;
+  bottom: -6rem;
+  width: 22rem;
+  height: 22rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.auth-shell main span.bg-green-700 {
+  color: #fff !important;
+}
+
+/* ==========================================================================
+   Profondeur des blocs : fond de page plus soutenu, cartes nettes et ombrées
+   ========================================================================== */
+.app-main {
+  background-color: #eef2f7;
+}
+
+.app-main [class~="rounded-2xl"][class~="border"][class~="bg-white"],
+.app-main [class~="rounded-xl"][class~="border"][class~="bg-white"]:not(button):not(a):not(input):not(select) {
+  border-color: #d6dee8 !important;
+  box-shadow: 0 1px 2px rgb(16 40 70 / 5%), 0 4px 14px rgb(16 40 70 / 5%);
+}
+
+/* ==========================================================================
+   Tableau de bord
+   ========================================================================== */
+.dashboard-accueil {
+  border: 1px solid #0f3d22;
+  background:
+    radial-gradient(circle at 92% 0%, rgb(255 255 255 / 14%) 0, transparent 38%),
+    radial-gradient(circle at 70% 120%, rgb(134 239 172 / 16%) 0, transparent 45%),
+    linear-gradient(120deg, #0f3d22 0%, #14532d 50%, #166534 100%);
+  box-shadow: 0 8px 24px rgb(15 61 34 / 18%);
+}
+
+.dashboard-accueil::after {
+  content: "";
+  position: absolute;
+  top: -5rem;
+  right: -3rem;
+  width: 16rem;
+  height: 16rem;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+.dashboard-accueil-date { color: #bbf7d0 !important; }
+.dashboard-accueil-titre { color: #fff !important; }
+.dashboard-accueil-texte { color: #dcfce7 !important; }
+
+.dashboard-actualiser {
+  position: relative;
+  z-index: 1;
+  border: 1px solid rgb(255 255 255 / 35%);
+  background-color: rgb(255 255 255 / 10%);
+  color: #fff !important;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+
+.dashboard-actualiser:hover:not(:disabled) {
+  border-color: rgb(255 255 255 / 70%);
+  background-color: rgb(255 255 255 / 18%);
+}
+
+.dashboard-actualiser:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+/* Titre de section : pastille d'icône */
+.dashboard-section-icone {
+  display: inline-flex;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.65rem;
+}
+
+/* Carte d'indicateur */
+.carte-indicateur {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  border: 1px solid #d6dee8;
+  border-radius: 0.9rem;
+  background-color: #fff;
+  box-shadow: 0 1px 2px rgb(16 40 70 / 5%), 0 4px 14px rgb(16 40 70 / 5%);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+}
+
+.carte-indicateur-cliquable:hover {
+  transform: translateY(-2px);
+  border-color: #c3cfdd;
+  box-shadow: 0 2px 4px rgb(16 40 70 / 6%), 0 12px 28px rgb(16 40 70 / 10%);
+}
+
+.carte-indicateur-valeur {
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: #0f2740;
+  font-variant-numeric: tabular-nums;
+}
+
+.carte-indicateur-icone {
+  display: inline-flex;
+  width: 2.75rem;
+  height: 2.75rem;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.8rem;
+}
+
+.carte-indicateur-lien {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-top: 1px solid #eef2f6;
+  background-color: #fafbfd;
+  padding: 0.7rem 1.25rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #166534 !important;
+  transition: background-color 140ms ease;
+}
+
+.carte-indicateur-lien:hover {
+  background-color: #f0fdf4;
+}
+
+.carte-indicateur-lien svg {
+  transition: transform 140ms ease;
+}
+
+.carte-indicateur-lien:hover svg {
+  transform: translateX(3px);
+}
+
+/* Teintes des pastilles (fond pâle, icône soutenue) */
+.teinte-vert { background-color: #dcfce7; color: #15803d !important; }
+.teinte-bleu { background-color: #dbeafe; color: #1d4ed8 !important; }
+.teinte-ambre { background-color: #fef3c7; color: #b45309 !important; }
+.teinte-violet { background-color: #ede9fe; color: #6d28d9 !important; }
+.teinte-sarcelle { background-color: #ccfbf1; color: #0f766e !important; }
+.teinte-indigo { background-color: #e0e7ff; color: #4338ca !important; }
+.teinte-ardoise { background-color: #e2e8f0; color: #334155 !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  .carte-indicateur,
+  .carte-indicateur-lien svg {
+    transition: none;
+  }
+
+  .carte-indicateur-cliquable:hover {
+    transform: none;
+  }
+}
+
+
+.carte-indicateur-libelle {
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: #475569;
+}
+
+/* ---------- Affectations ---------- */
+.affectation-badge,
+.affectation-statut {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0.1rem 0.55rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.affectation-badge-structure { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.affectation-badge-direction { background: #eff6ff; color: #1d4ed8; border-color: #bfdbfe; }
+.affectation-badge-service   { background: #f0fdfa; color: #0f766e; border-color: #99f6e4; }
+.affectation-statut-en_cours { background: #f0fdf4; color: #166534; border-color: #bbf7d0; }
+.affectation-statut-a_venir  { background: #fffbeb; color: #b45309; border-color: #fde68a; }
+.affectation-statut-terminee { background: #f1f5f9; color: #475569; border-color: #e2e8f0; }

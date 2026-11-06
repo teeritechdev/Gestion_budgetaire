@@ -1,5 +1,7 @@
 package com.budget.backend.security;
 
+import com.budget.backend.security.entity.Affectation;
+import com.budget.backend.security.entity.NiveauAffectation;
 import com.budget.backend.security.entity.Structure;
 import com.budget.backend.security.entity.Direction;
 import com.budget.backend.security.entity.ServiceOrganisationnel;
@@ -7,6 +9,7 @@ import com.budget.backend.security.entity.Permission;
 import com.budget.backend.security.entity.Role;
 import com.budget.backend.security.entity.Salarie;
 import com.budget.backend.security.entity.Utilisateur;
+import com.budget.backend.security.repository.AffectationRepository;
 import com.budget.backend.security.repository.StructureRepository;
 import com.budget.backend.security.repository.DirectionRepository;
 import com.budget.backend.security.repository.ServiceOrganisationnelRepository;
@@ -46,6 +49,9 @@ public class DataInitializer implements CommandLineRunner {
 
     @Autowired
     private UtilisateurRepository utilisateurRepository;
+
+    @Autowired
+    private AffectationRepository affectationRepository;
 
     @Autowired
     private PermissionRepository permissionRepository;
@@ -116,9 +122,16 @@ public class DataInitializer implements CommandLineRunner {
                 .sexe("NON_RENSEIGNE")
                 .email("admin@uab.bf")
                 .dateEmbauche(LocalDate.now())
-                .service(service)
                 .actif(true)
                 .build()));
+        if (affectationRepository.findBySalarie_Id(adminSalarie.getId()).isEmpty()) {
+            affectationRepository.save(Affectation.builder()
+                    .salarie(adminSalarie)
+                    .niveau(NiveauAffectation.SERVICE)
+                    .service(service)
+                    .dateDebut(LocalDate.now())
+                    .build());
+        }
         Utilisateur newAdmin = Utilisateur.builder()
                 .username("admin@uab.bf")
                 .motDePasseHash(passwordEncoder.encode(adminInitialPassword))

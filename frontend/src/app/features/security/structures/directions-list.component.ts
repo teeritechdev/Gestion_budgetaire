@@ -8,6 +8,7 @@ import { FormPageComponent } from '../../../shared/components/form-page.componen
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
@@ -22,46 +23,28 @@ import { ServiceOrganisationnel } from '../../../core/models/service-organisatio
 @Component({
   selector: 'app-directions-list',
   standalone: true,
-  imports: [PageHeaderComponent, RecordDetailsDialogComponent, RowActionsComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, FormsModule],
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, RecordDetailsDialogComponent, RowActionsComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, FormsModule],
   template: `
 @if (importOpen()) {
 <app-import-csv-page section="Directions" [format]="importFormats.directions" (back)="importOpen.set(false)" (imported)="refresh()" />
 } @else {
 @if (formOpen()) {
-<app-form-page section="Directions" [title]="editingId() ? 'Modifier la direction' : 'Créer une direction'" [mode]="editingId() ? 'Modification' : 'Création'" subtitle="Une direction est rattachée à une Structure et regroupe des services." (back)="formOpen.set(false)">
+<app-form-page section="Directions" [title]="editingId() ? 'Modifier la direction' : 'Créer une direction'" [mode]="editingId() ? 'Modification' : 'Création'" subtitle="Une direction est rattachée à une seule Structure et regroupe des services." (back)="formOpen.set(false)">
 <form (ngSubmit)="save()">
   <section class="space-y-4">
-    <h3>Identification</h3>
-    <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Code *<input required maxlength="50" [(ngModel)]="draft.code" name="code" placeholder="Ex. : DIR-FIN" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono uppercase"></label>
-      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Libellé *<input required maxlength="150" [(ngModel)]="draft.libelle" name="libelle" placeholder="Ex. : Direction financière" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"></label>
-    </div>
-  </section>
-  <section class="space-y-4">
-    <h3>Rattachement</h3>
-    <label class="flex items-start gap-3 rounded-xl border border-slate-200 p-3 text-xs text-slate-700">
-      <input type="checkbox" [(ngModel)]="draft.estCsp" (ngModelChange)="onCspChange()" name="estCsp" class="mt-0.5 h-4 w-4">
-      <span><span class="font-semibold text-slate-900">Direction CSP (centre de services partagés)</span><br>
-        Elle fournit ses services à toutes les structures du groupe : elle n’est donc rattachée à aucune structure en particulier.</span>
+    <label class="block space-y-1.5 text-xs font-medium text-slate-700">Structure de rattachement <span class="champ-obligatoire" aria-hidden="true">*</span>
+      <app-search-select required [(ngModel)]="draft.structureCode" name="structureCode" placeholder="Choisir une structure…" [isDisabled]="!structures().length">
+        @for (structure of structures(); track structure.code) { <app-search-option [value]="structure.code" [label]="structure.nom + ' (' + structure.code + ')'" /> }
+      </app-search-select>
+      @if (!structures().length) {
+        <span class="block text-[11px] text-amber-700">Aucune Structure disponible : créez-en une ou vérifiez la permission entite.lire.</span>
+      }
     </label>
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
-      @if (draft.estCsp) {
-        <div class="space-y-1.5 text-xs font-medium text-slate-700">Structure
-          <p class="rounded-xl border border-amber-500/20 bg-amber-500/5 px-3 py-2.5 text-sm text-amber-800">Toutes les structures du groupe (direction transversale)</p>
-        </div>
-      } @else {
-        <label class="block space-y-1.5 text-xs font-medium text-slate-700">Structure *
-          <select required [(ngModel)]="draft.structureCode" name="structureCode" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500">
-            <option value="">Choisir une Structure</option>
-            @for (structure of structures(); track structure.code) { <option [value]="structure.code">{{ structure.nom }} ({{ structure.code }})</option> }
-          </select>
-          @if (!structures().length) {
-            <span class="block text-[11px] text-amber-700">Aucune Structure disponible : créez-en une ou vérifiez la permission entite.lire.</span>
-          }
-        </label>
-      }
-      <label class="flex items-center gap-2 self-end pb-3 text-xs text-slate-700"><input type="checkbox" [(ngModel)]="draft.actif" name="actif" class="h-4 w-4"> Direction active</label>
+      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Code <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="50" [(ngModel)]="draft.code" name="code" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono uppercase"><span class="block text-[11px] font-normal text-slate-500">Code unique, ex. DIR-FIN.</span></label>
+      <label class="block space-y-1.5 text-xs font-medium text-slate-700">Libellé <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="150" [(ngModel)]="draft.libelle" name="libelle" class="w-full rounded-xl border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-blue-500"></label>
     </div>
+    <label class="flex items-center gap-2 text-xs text-slate-700"><input type="checkbox" [(ngModel)]="draft.actif" name="actif" class="h-4 w-4"> Direction active</label>
   </section>
   <div class="form-page-actions">
     <button type="button" (click)="formOpen.set(false)" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-medium text-slate-700 hover:bg-slate-100">Annuler</button>
@@ -72,8 +55,8 @@ import { ServiceOrganisationnel } from '../../../core/models/service-organisatio
 </app-form-page>
 } @else {
     <div class="mx-auto max-w-7xl space-y-6">
-      <app-page-header icon="directions" module="Administration" title="Directions" description="Les directions de chaque structure, et les directions CSP au service de tout le groupe.">
-<app-data-actions ressource="directions" exportPermission="direction.exporter" [ids]="exportIds()" [importPermissions]="['direction.importer']" (importer)="importOpen.set(true)" />@if (auth.hasPermission('direction.creer')) {
+      <app-page-header icon="directions" module="Administration" title="Directions" description="Les directions de chaque structure et les services qu’elles regroupent.">
+<app-data-actions ressource="directions" exportPermission="direction.exporter" [ids]="exportIds()" [importPermissions]="['direction.importer']" [importFormat]="importFormats.directions" (importer)="importOpen.set(true)" />@if (auth.hasPermission('direction.creer')) {
           <button type="button" (click)="openForm()" class="whitespace-nowrap rounded-xl bg-green-700 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">＋ Nouvelle direction</button>
         }
 </app-page-header>
@@ -88,32 +71,19 @@ import { ServiceOrganisationnel } from '../../../core/models/service-organisatio
           <option value="">Toutes les Structures</option>
           @for (structure of structures(); track structure.code) { <option [value]="structure.code">{{ structure.nom }} ({{ structure.code }})</option> }
         </select>
-        <select [(ngModel)]="cspFilter" aria-label="Filtrer par statut CSP" class="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-700">
-          <option value="">CSP et non CSP</option>
-          <option value="CSP">Directions CSP</option>
-          <option value="NON_CSP">Directions non CSP</option>
-        </select>
       </div>
 
       <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div class="overflow-x-auto">
           <table class="w-full text-left text-xs">
-            <thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Code</th><th class="p-3">Libellé</th><th class="p-3">Structure</th><th class="p-3">Services</th><th class="p-3">CSP</th><th class="p-3">État</th><th class="p-3 text-right">Actions</th></tr></thead>
+            <thead class="bg-slate-50 text-slate-600"><tr><th class="p-3">Code</th><th class="p-3">Libellé</th><th class="p-3">Structure</th><th class="p-3">Services</th><th class="p-3">État</th><th class="p-3 text-right">Actions</th></tr></thead>
             <tbody class="divide-y divide-slate-200">
               @for (direction of visible(); track direction.id) {
                 <tr>
                   <td class="p-3 font-mono">{{ direction.code }}</td>
                   <td class="p-3 font-medium text-white">{{ direction.libelle }}</td>
-                  <td class="p-3">
-                    @if (direction.structureCode) { {{ direction.structureNom }} ({{ direction.structureCode }}) }
-                    @else { <span class="font-medium text-amber-700">Toutes les structures (CSP)</span> }
-                  </td>
+                  <td class="p-3">{{ structureLabel(direction) }}</td>
                   <td class="p-3">{{ serviceCount(direction.id) }}</td>
-                  <td class="p-3">
-                    @if (direction.estCsp) {
-                      <span class="rounded-full border border-amber-500/20 bg-amber-500/10 px-2 py-0.5 text-[11px] font-semibold text-amber-700">Direction CSP</span>
-                    } @else { <span class="text-slate-400">—</span> }
-                  </td>
                   <td class="p-3">{{ direction.actif ? 'Active' : 'Inactive' }}</td>
                   <td class="p-3">
                     <app-row-actions [label]="direction.code"
@@ -122,7 +92,7 @@ import { ServiceOrganisationnel } from '../../../core/models/service-organisatio
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="p-6 text-center text-slate-500">{{ loading() ? 'Chargement des directions…' : 'Aucune direction trouvée.' }}</td></tr>
+                <tr><td colspan="6" class="p-6 text-center text-slate-500">{{ loading() ? 'Chargement des directions…' : 'Aucune direction trouvée.' }}</td></tr>
               }
             </tbody>
           </table>
@@ -161,7 +131,6 @@ export class DirectionsListComponent implements OnInit {
   detailRecord: object | null = null;
   search = '';
   structureFilter = '';
-  cspFilter: '' | 'CSP' | 'NON_CSP' = '';
   draft: DirectionRequest = this.emptyDraft();
 
   ngOnInit(): void {
@@ -199,7 +168,6 @@ export class DirectionsListComponent implements OnInit {
     return this.directions().filter(
       (direction) =>
         (!this.structureFilter || direction.structureCode === this.structureFilter) &&
-        (!this.cspFilter || (this.cspFilter === 'CSP') === !!direction.estCsp) &&
         (!terme || direction.code.toLowerCase().includes(terme) || direction.libelle.toLowerCase().includes(terme)),
     );
   }
@@ -210,7 +178,7 @@ export class DirectionsListComponent implements OnInit {
 
   openForm(): void {
     this.editingId.set('');
-    this.draft = { ...this.emptyDraft(), structureCode: this.structures()[0]?.code ?? '' };
+    this.draft = this.emptyDraft();
     this.formOpen.set(true);
   }
 
@@ -219,9 +187,8 @@ export class DirectionsListComponent implements OnInit {
     this.draft = {
       code: direction.code,
       libelle: direction.libelle,
-      structureCode: direction.structureCode ?? '',
+      structureCode: direction.structureCode,
       actif: direction.actif,
-      estCsp: !!direction.estCsp,
     };
     this.formOpen.set(true);
   }
@@ -231,15 +198,13 @@ export class DirectionsListComponent implements OnInit {
       ...this.draft,
       code: this.draft.code.trim(),
       libelle: this.draft.libelle.trim(),
-      // Une direction CSP est transversale : aucune structure n'est transmise.
-      structureCode: this.draft.estCsp ? '' : this.draft.structureCode,
     };
     if (!request.code || !request.libelle) {
       this.notifications.warning('Renseignez le code et le libellé.');
       return;
     }
-    if (!request.estCsp && !request.structureCode) {
-      this.notifications.warning('Choisissez la structure de rattachement, ou cochez « Direction CSP ».');
+    if (!request.structureCode) {
+      this.notifications.warning('Choisissez la structure de rattachement.');
       return;
     }
     this.saving.set(true);
@@ -268,12 +233,13 @@ export class DirectionsListComponent implements OnInit {
     });
   }
 
-  onCspChange(): void {
-    if (this.draft.estCsp) this.draft.structureCode = '';
+  structureLabel(direction: Direction): string {
+    if (!direction.structureCode) return '—';
+    return direction.structureNom ? `${direction.structureNom} (${direction.structureCode})` : direction.structureCode;
   }
 
   private emptyDraft(): DirectionRequest {
-    return { code: '', libelle: '', structureCode: '', actif: true, estCsp: false };
+    return { code: '', libelle: '', structureCode: '', actif: true };
   }
 
   private failedLoad(label: string) {

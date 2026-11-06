@@ -12,7 +12,6 @@ export interface Structure {
   formeJuridique?: string | null;
   numeroFiscal?: string | null;
   siteWeb?: string | null;
-  logo?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

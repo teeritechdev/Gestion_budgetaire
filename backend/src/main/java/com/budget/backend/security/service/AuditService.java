@@ -19,6 +19,9 @@ public class AuditService {
     @Autowired
     private HttpServletRequest request;
 
+    @Autowired
+    private AdresseIpResolver adresseIpResolver;
+
     public void logAction(UUID utilisateurId, String typeAction, String nomTable, String enregistrementId,
                           Map<String, Object> anciennesValeurs, Map<String, Object> nouvellesValeurs) {
         logAction(utilisateurId, typeAction, nomTable, enregistrementId, anciennesValeurs, nouvellesValeurs, request);
@@ -29,7 +32,7 @@ public class AuditService {
                           HttpServletRequest httpRequest) {
 
         httpRequest.setAttribute(AuditService.class.getName() + ".logged", true);
-        String adresseIp = getClientIp(httpRequest);
+        String adresseIp = adresseIpResolver.adresseClient(httpRequest);
         String userAgent = httpRequest.getHeader("User-Agent");
 
         AuditLog auditLog = AuditLog.builder()
@@ -44,13 +47,5 @@ public class AuditService {
                 .build();
 
         auditLogRepository.save(auditLog);
-    }
-
-    private String getClientIp(HttpServletRequest request) {
-        String xfHeader = request.getHeader("X-Forwarded-For");
-        if (xfHeader == null) {
-            return request.getRemoteAddr();
-        }
-        return xfHeader.split(",")[0];
     }
 }

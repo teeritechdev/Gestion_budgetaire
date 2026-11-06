@@ -8,7 +8,7 @@ import com.budget.backend.security.entity.Direction;
 import com.budget.backend.security.entity.ServiceOrganisationnel;
 import com.budget.backend.security.repository.DirectionRepository;
 import com.budget.backend.security.repository.ServiceOrganisationnelRepository;
-import com.budget.backend.security.repository.SalarieRepository;
+import com.budget.backend.security.repository.AffectationRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,23 +21,22 @@ import java.util.UUID;
 public class ServiceOrganisationnelService {
     private final ServiceOrganisationnelRepository serviceRepository;
     private final DirectionRepository directionRepository;
-    private final SalarieRepository salarieRepository;
+    private final AffectationRepository affectationRepository;
 
     public ServiceOrganisationnelService(
             ServiceOrganisationnelRepository serviceRepository,
             DirectionRepository directionRepository,
-            SalarieRepository salarieRepository) {
+            AffectationRepository affectationRepository) {
         this.serviceRepository = serviceRepository;
         this.directionRepository = directionRepository;
-        this.salarieRepository = salarieRepository;
+        this.affectationRepository = affectationRepository;
     }
 
     @Transactional(readOnly = true)
     public List<ServiceResponseDto> lister(UUID directionId, String structureCode, Boolean actif, String recherche) {
         return serviceRepository.findAll().stream()
                 .filter(service -> directionId == null || service.getDirection().getId().equals(directionId))
-                .filter(service -> structureCode == null
-                        || structureCode.equalsIgnoreCase(service.getDirection().codeStructure()))
+                .filter(service -> structureCode == null || service.getDirection().estRattacheeA(structureCode))
                 .filter(service -> actif == null || service.getActif().equals(actif))
                 .filter(service -> recherche == null
                         || service.getLibelle().toLowerCase().contains(recherche.toLowerCase())
@@ -81,7 +80,7 @@ public class ServiceOrganisationnelService {
 
     @Transactional
     public void supprimer(UUID id) {
-        if (salarieRepository.existsByService_Id(id)) {
+        if (affectationRepository.existsByService_Id(id)) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Ce service ne peut pas être supprimé tant que des salariés y sont affectés.");
         }

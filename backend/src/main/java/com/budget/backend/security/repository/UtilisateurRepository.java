@@ -13,6 +13,7 @@ import java.util.UUID;
 public interface UtilisateurRepository extends JpaRepository<Utilisateur, UUID> {
 
     Optional<Utilisateur> findByUsername(String username);
+    Optional<Utilisateur> findByUsernameIgnoreCase(String username);
     boolean existsByUsername(String username);
     boolean existsByUsernameAndIdNot(String username, UUID id);
     boolean existsBySalarie_Id(UUID salarieId);

@@ -56,9 +56,6 @@ public class Structure {
     @Column(name = "site_web", length = 255)
     private String siteWeb;
 
-    @Column(length = 512)
-    private String logo;
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

@@ -2,6 +2,11 @@ server:
   port: 8080
 
 spring:
+  # Fichiers envoyés (imports CSV, photo de profil : 2 Mo maximum contrôlés par l'application).
+  servlet:
+    multipart:
+      max-file-size: 5MB
+      max-request-size: 6MB
   datasource:
     # Si ton application Spring Boot tourne directement sur ta machine (hors Docker), utilise "localhost".
     # Si ton Spring Boot tourne aussi dans un conteneur Docker, garde "host.docker.internal".
@@ -23,3 +28,9 @@ spring:
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
   expiration: 86400000 # 24h
+
+# Journal d'audit : proxies dont les en-têtes X-Forwarded-For / X-Real-IP sont pris en compte.
+# Vide = en-têtes ignorés (le front appelle le backend directement). Si l'application est publiée
+# derrière un proxy inverse (Nginx, IIS…), indiquer son adresse, ex. : 127.0.0.1,::1
+audit:
+  proxies-de-confiance:

@@ -2,6 +2,11 @@ package com.budget.backend.security.controller;
 
 import com.budget.backend.security.dto.JwtResponse;
 import com.budget.backend.security.dto.LoginRequest;
+import com.budget.backend.security.dto.ReinitialisationMotDePasseRequest;
+import com.budget.backend.security.dto.VerificationIdentiteRequest;
+import com.budget.backend.security.security.ReponseConnexion;
+import com.budget.backend.security.service.AdresseIpResolver;
+import com.budget.backend.security.service.MotDePasseService;
 import com.budget.backend.security.entity.Utilisateur;
 import com.budget.backend.security.repository.UtilisateurRepository;
 import com.budget.backend.security.security.JwtUtils;
@@ -19,16 +24,13 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -51,6 +53,15 @@ public class AuthController {
 
     @Autowired
     private TokenRevocationService tokenRevocationService;
+
+    @Autowired
+    private ReponseConnexion reponseConnexion;
+
+    @Autowired
+    private MotDePasseService motDePasseService;
+
+    @Autowired
+    private AdresseIpResolver adresseIpResolver;
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
@@ -84,37 +95,34 @@ public class AuthController {
         loginAttemptService.succes(username);
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
-        String jwt = jwtUtils.generateJwtToken(authentication);
-
-        User userDetails = (User) authentication.getPrincipal();
-        Utilisateur utilisateur = utilisateurRepository.findByUsername(userDetails.getUsername())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Utilisateur introuvable."));
+        JwtResponse reponse = reponseConnexion.pour(authentication);
 
         // Enregistrement de l'audit de connexion dans la base de données
         auditService.logAction(
-                utilisateur.getId(),
+                reponse.getId(),
                 "CONNEXION",
                 "utilisateurs",
-                utilisateur.getId().toString(),
+                reponse.getId().toString(),
                 null,
-                Map.of("username", utilisateur.getUsername(), "statut", "succes")
+                Map.of("username", reponse.getUsername(), "statut", "succes")
         );
+        return ResponseEntity.ok(reponse);
+    }
 
-        List<String> permissions = userDetails.getAuthorities().stream()
-                .map(item -> item.getAuthority())
-                .collect(Collectors.toList());
+    /** Mot de passe oublié, étape 1 : vérification de l'identité à partir du dossier RH. */
+    @PostMapping("/mot-de-passe-oublie/verification")
+    public Map<String, Object> verifierIdentite(@Valid @RequestBody VerificationIdentiteRequest request,
+                                                HttpServletRequest httpRequest) {
+        String jeton = motDePasseService.verifierIdentite(request.identifiant(), request.matricule(),
+                request.numeroCnib(), request.dateNaissance(), adresseIpResolver.adresseClient(httpRequest));
+        return Map.of("jeton", jeton, "validiteMinutes", 15);
+    }
 
-        return ResponseEntity.ok(new JwtResponse(
-                jwt,
-                "Bearer",
-                utilisateur.getId(),
-                utilisateur.getUsername(),
-                utilisateur.getSalarie().getEmail(),
-                utilisateur.getSalarie().getNom(),
-                utilisateur.getSalarie().getPrenom(),
-                utilisateur.getRole().getCode(),
-                permissions
-        ));
+    /** Mot de passe oublié, étape 2 : choix du nouveau mot de passe. */
+    @PostMapping("/mot-de-passe-oublie/reinitialisation")
+    public Map<String, String> reinitialiser(@Valid @RequestBody ReinitialisationMotDePasseRequest request) {
+        motDePasseService.reinitialiser(request.jeton(), request.nouveauMotDePasse());
+        return Map.of("message", "Votre mot de passe a été réinitialisé. Vous pouvez vous connecter.");
     }
 
     @PostMapping("/logout")

@@ -325,9 +325,9 @@ import { Utilisateur } from '../../../core/models/utilisateur.model';
                     maxlength="50"
                     [(ngModel)]="formData.code"
                     name="code"
-                    placeholder="Ex: DIR-IT-01"
                     class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-white uppercase focus:outline-none focus:ring-1 focus:ring-blue-500"
                   />
+                  <p class="mt-1 text-[11px] text-slate-500">Code unique, ex. DIR-IT-01.</p>
                 </div>
               </div>
 
@@ -342,7 +342,6 @@ import { Utilisateur } from '../../../core/models/utilisateur.model';
                   maxlength="150"
                   [(ngModel)]="formData.libelle"
                   name="libelle"
-                  placeholder="Ex: Direction des Systèmes d'Information"
                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-blue-500"
                 />
               </div>

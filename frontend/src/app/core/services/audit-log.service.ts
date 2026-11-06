@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuditLog } from '../models/audit-log.model';
+import { AuditLog, AuditLogDetail } from '../models/audit-log.model';
 
 @Injectable({
   providedIn: 'root'
@@ -23,6 +23,11 @@ export class AuditLogService {
 
   obtenirParId(id: string): Observable<AuditLog> {
     return this.http.get<AuditLog>(`${this.baseUrl}/${id}`);
+  }
+
+  /** Auteur résolu, navigateur, requête et valeurs champ par champ. */
+  detail(id: string): Observable<AuditLogDetail> {
+    return this.http.get<AuditLogDetail>(`${this.baseUrl}/${id}/detail`);
   }
 
   exporterCsv(utilisateurId?: string, typeAction?: string, nomTable?: string, startDate?: string, endDate?: string): Observable<Blob> {
