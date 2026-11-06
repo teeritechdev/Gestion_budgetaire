@@ -9,9 +9,8 @@ public record DirectionResponseDto(
         String libelle,
         String structureCode,
         String structureNom,
-        java.util.UUID responsableId,
+        UUID responsableId,
         Boolean actif,
-        Boolean estCsp,
         LocalDateTime createdAt,
         LocalDateTime updatedAt
 ) {}

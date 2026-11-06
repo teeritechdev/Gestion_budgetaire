@@ -29,20 +29,40 @@ export class AuthService {
 
   login(credentials: LoginRequest): Observable<JwtResponse> {
     return this.http.post<JwtResponse>(`${this.baseUrl}/login`, credentials).pipe(
-      tap((res) => {
-        const user: CurrentUser = {
-          id: res.id,
-          username: res.username,
-          email: res.email,
-          nom: res.nom,
-          prenom: res.prenom,
-          role: res.role,
-          permissions: res.permissions || [],
-          token: res.token
-        };
-        this.saveUser(user);
-      })
+      tap((res) => this.ouvrirSession(res))
     );
+  }
+
+  /** Enregistre une session (connexion, ou nouveau jeton après un changement de mot de passe). */
+  ouvrirSession(res: JwtResponse): void {
+    this.saveUser({
+      id: res.id,
+      username: res.username,
+      email: res.email,
+      nom: res.nom,
+      prenom: res.prenom,
+      role: res.role,
+      permissions: res.permissions || [],
+      token: res.token,
+      doitChangerMotDePasse: !!res.doitChangerMotDePasse,
+      avecPhoto: !!res.avecPhoto,
+    });
+  }
+
+  /** Met à jour un indicateur de la session courante sans changer de jeton. */
+  mettreAJourSession(modifications: Partial<Pick<CurrentUser, 'avecPhoto' | 'doitChangerMotDePasse'>>): void {
+    const user = this._currentUser();
+    if (user) this.saveUser({ ...user, ...modifications });
+  }
+
+  /** Mot de passe oublié, étape 1 : renvoie un jeton de réinitialisation (15 minutes). */
+  verifierIdentite(demande: { identifiant: string; matricule: string; numeroCnib: string; dateNaissance: string }) {
+    return this.http.post<{ jeton: string; validiteMinutes: number }>(`${this.baseUrl}/mot-de-passe-oublie/verification`, demande);
+  }
+
+  /** Mot de passe oublié, étape 2. */
+  reinitialiserMotDePasse(jeton: string, nouveauMotDePasse: string) {
+    return this.http.post<{ message: string }>(`${this.baseUrl}/mot-de-passe-oublie/reinitialisation`, { jeton, nouveauMotDePasse });
   }
 
   logout(): void {

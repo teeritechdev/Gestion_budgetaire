@@ -1,17 +1,18 @@
 import { PageHeaderComponent } from '../../../shared/components/page-header.component';
 import { DataActionsComponent } from '../../../shared/components/data-actions.component';
+import { RowActionsComponent } from '../../../shared/components/row-actions.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { AuditLogService } from '../../../core/services/audit-log.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { AuditLog } from '../../../core/models/audit-log.model';
+import { AuditLog, AuditLogDetail } from '../../../core/models/audit-log.model';
 
 @Component({
   selector: 'app-audit-logs-list',
   standalone: true,
-  imports: [PageHeaderComponent, DataActionsComponent, CommonModule, FormsModule],
+  imports: [PageHeaderComponent, DataActionsComponent, RowActionsComponent, CommonModule, FormsModule],
   template: `
     <div class="space-y-6 max-w-7xl mx-auto">
       <app-page-header icon="audit" module="Administration" title="Journal d’audit" description="Chaque action sensible, horodatée et traçable.">
@@ -61,7 +62,7 @@ import { AuditLog } from '../../../core/models/audit-log.model';
               <th class="py-3.5 px-4">Entité / Table Cible</th>
               <th class="py-3.5 px-4">ID Enregistrement</th>
               <th class="py-3.5 px-4">Adresse IP</th>
-              <th class="py-3.5 px-4 text-right">Détails</th>
+              <th class="py-3.5 px-4 text-right">Actions</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-200/60">
@@ -78,12 +79,7 @@ import { AuditLog } from '../../../core/models/audit-log.model';
                     {{ log.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}
                   </td>
                   <td class="py-3.5 px-4">
-                    <span
-                      class="px-2 py-0.5 rounded-full font-medium"
-                      [ngClass]="{
-                        'bg-blue-50 text-blue-800 border border-blue-200': log.typeAction === 'CONNEXION' || log.typeAction === 'INSERTION' || log.typeAction === 'MODIFICATION',
-                        'bg-rose-500/10 text-rose-400 border border-rose-500/20': log.typeAction === 'SUPPRESSION'
-                      }">
+                    <span class="px-2 py-0.5 rounded-full font-medium" [ngClass]="actionClass(log.typeAction)">
                       {{ log.typeAction }}
                     </span>
                   </td>
@@ -91,11 +87,7 @@ import { AuditLog } from '../../../core/models/audit-log.model';
                   <td class="py-3.5 px-4 font-mono text-slate-600 truncate max-w-[150px]">{{ log.enregistrementId }}</td>
                   <td class="py-3.5 px-4 text-slate-600">{{ log.adresseIp || 'Localhost' }}</td>
                   <td class="py-3.5 px-4 text-right">
-                    <button
-                      (click)="inspectLog(log)"
-                      class="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-700 text-blue-300 hover:text-white transition-colors text-[11px] font-medium">
-                      Examiner
-                    </button>
+                    <app-row-actions [label]="log.nomTable + ' du ' + (log.createdAt | date:'dd/MM/yyyy HH:mm')" (view)="inspectLog(log)" />
                   </td>
                 </tr>
               }
@@ -104,61 +96,102 @@ import { AuditLog } from '../../../core/models/audit-log.model';
         </table>
       </div>
 
-      <!-- JSON Diff / Detail Modal -->
-      @if (selectedLog()) {
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
-          <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-3xl p-6 shadow-2xl space-y-4 max-h-[90vh] flex flex-col">
-            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-              <div>
-                <h3 class="text-lg font-semibold text-white">Détails de l'Audit</h3>
-                <p class="text-xs text-slate-600 font-mono">
-                  {{ selectedLog()?.typeAction }} sur {{ selectedLog()?.nomTable }} (ID: {{ selectedLog()?.enregistrementId }})
-                </p>
+      <!-- Vue détaillée d'une entrée -->
+      @if (selectedLog(); as log) {
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" (click)="fermerDetail()">
+          <div role="dialog" aria-modal="true" aria-labelledby="audit-detail-titre" (click)="$event.stopPropagation()"
+            class="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl">
+            <header class="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-4">
+              <div class="min-w-0">
+                <div class="flex flex-wrap items-center gap-2">
+                  <span class="rounded-full px-2.5 py-0.5 text-xs font-semibold" [ngClass]="actionClass(log.typeAction)">{{ log.typeAction }}</span>
+                  <span class="font-mono text-sm text-slate-700">{{ log.nomTable }}</span>
+                </div>
+                <h3 id="audit-detail-titre" class="mt-1.5 text-lg font-semibold text-slate-900">Détail de l’événement d’audit</h3>
+                <p class="text-xs text-slate-500">Le {{ log.createdAt | date:"dd/MM/yyyy 'à' HH:mm:ss" }}</p>
               </div>
-              <button (click)="selectedLog.set(null)" class="text-slate-600 hover:text-white">
-                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+              <button type="button" (click)="fermerDetail()" aria-label="Fermer" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100">
+                <svg aria-hidden="true" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
               </button>
-            </div>
+            </header>
 
-            <div class="flex-1 overflow-y-auto space-y-4 text-xs">
-              <div class="grid grid-cols-2 gap-4">
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span class="text-slate-500 uppercase font-semibold text-[10px]">Utilisateur ID</span>
-                  <p class="text-slate-800 font-mono mt-0.5 truncate">{{ selectedLog()?.utilisateurId || 'Système / Anonyme' }}</p>
-                </div>
-                <div class="p-3 bg-slate-50 rounded-xl border border-slate-200">
-                  <span class="text-slate-500 uppercase font-semibold text-[10px]">User-Agent</span>
-                  <p class="text-slate-800 mt-0.5 truncate">{{ selectedLog()?.userAgent || 'Non renseigné' }}</p>
-                </div>
+            <div class="flex-1 space-y-5 overflow-y-auto px-6 py-5 text-sm">
+              @if (detailLoading()) {
+                <p class="text-xs text-slate-500">Chargement des informations détaillées…</p>
+              }
+              <div class="grid gap-4 md:grid-cols-2">
+                <section class="audit-detail-bloc">
+                  <h4>Événement</h4>
+                  <dl>
+                    <div><dt>Type d’action</dt><dd>{{ log.typeAction }}</dd></div>
+                    <div><dt>Ressource</dt><dd class="font-mono">{{ log.nomTable }}</dd></div>
+                    <div><dt>ID enregistrement</dt><dd class="font-mono break-all">{{ log.enregistrementId || '—' }}</dd></div>
+                    <div><dt>Date et heure</dt><dd>{{ log.createdAt | date:'dd/MM/yyyy HH:mm:ss' }}</dd></div>
+                    <div><dt>ID de l’entrée</dt><dd class="font-mono break-all text-slate-500">{{ log.id }}</dd></div>
+                  </dl>
+                </section>
+
+                <section class="audit-detail-bloc">
+                  <h4>Auteur</h4>
+                  <dl>
+                    <div><dt>Utilisateur</dt><dd>{{ detail()?.auteur || (log.utilisateurId ? '—' : 'Système / anonyme') }}</dd></div>
+                    <div><dt>Identifiant</dt><dd>{{ detail()?.auteurUsername || '—' }}</dd></div>
+                    <div><dt>Matricule</dt><dd>{{ detail()?.auteurMatricule || '—' }}</dd></div>
+                    <div><dt>Rôle</dt><dd>{{ detail()?.auteurRole || '—' }}</dd></div>
+                    <div><dt>ID utilisateur</dt><dd class="font-mono break-all">{{ log.utilisateurId || '— (aucun compte)' }}</dd></div>
+                  </dl>
+                </section>
+
+                <section class="audit-detail-bloc">
+                  <h4>Poste de travail</h4>
+                  <dl>
+                    <div><dt>Adresse IP</dt><dd class="font-mono">{{ log.adresseIp || '—' }}@if (estPosteLocal(log.adresseIp)) {<span class="ml-1 font-sans text-xs text-slate-500">(poste local)</span>}</dd></div>
+                    <div><dt>Navigateur</dt><dd>{{ detail()?.navigateur || '—' }}</dd></div>
+                    <div><dt>User agent</dt><dd class="break-all font-mono text-xs text-slate-600">{{ log.userAgent || 'Non renseigné' }}</dd></div>
+                  </dl>
+                </section>
+
+                <section class="audit-detail-bloc">
+                  <h4>Requête</h4>
+                  <dl>
+                    <div><dt>Appel</dt><dd class="font-mono break-all">{{ detail()?.requete || '—' }}</dd></div>
+                  </dl>
+                </section>
               </div>
 
-              <!-- JSON Comparison (Anciennes vs Nouvelles Valeurs) -->
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 class="text-xs font-semibold text-rose-400 uppercase tracking-wider mb-1.5">
-                    Anciennes Valeurs
-                  </h4>
-                  <pre class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono text-slate-700 overflow-x-auto max-h-64">{{ selectedLog()?.anciennesValeurs ? (selectedLog()?.anciennesValeurs | json) : selectedLog()?.typeAction === 'INSERTION' ? 'Aucune (création)' : 'Valeurs antérieures non capturées.' }}</pre>
-                </div>
-
-                <div>
-                  <h4 class="text-xs font-semibold text-blue-400 uppercase tracking-wider mb-1.5">
-                    Nouvelles Valeurs
-                  </h4>
-                  <pre class="bg-slate-50 border border-slate-200 rounded-xl p-3 text-[11px] font-mono text-slate-700 overflow-x-auto max-h-64">{{ selectedLog()?.nouvellesValeurs ? (selectedLog()?.nouvellesValeurs | json) : selectedLog()?.typeAction === 'SUPPRESSION' ? 'Aucune (suppression)' : 'Aucune valeur enregistrée.' }}</pre>
-                </div>
-              </div>
+              <section class="audit-detail-bloc">
+                <h4>Valeurs enregistrées</h4>
+                @if (detail()?.champs?.length) {
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                      <thead class="text-slate-600"><tr><th class="py-2 pr-3">Champ</th><th class="py-2 pr-3">Ancienne valeur</th><th class="py-2">Nouvelle valeur</th></tr></thead>
+                      <tbody class="divide-y divide-slate-200">
+                        @for (champ of detail()!.champs; track champ.nom) {
+                          <tr [class.bg-amber-50]="champ.modifie">
+                            <td class="py-2 pr-3 font-semibold text-slate-800">{{ champ.nom }}@if (champ.modifie) {<span class="ml-1.5 rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold text-amber-800">modifié</span>}</td>
+                            <td class="break-all py-2 pr-3 font-mono text-slate-600">{{ champ.ancienneValeur ?? '—' }}</td>
+                            <td class="break-all py-2 font-mono text-slate-900">{{ champ.nouvelleValeur ?? '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                } @else if (!detailLoading()) {
+                  <p class="text-xs text-slate-500">Aucune valeur enregistrée pour cet événement.</p>
+                }
+                <details class="mt-3 text-xs">
+                  <summary class="cursor-pointer font-medium text-slate-600">Voir les données brutes (JSON)</summary>
+                  <div class="mt-2 grid gap-3 md:grid-cols-2">
+                    <pre class="max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[11px] text-slate-700">{{ log.anciennesValeurs ? (log.anciennesValeurs | json) : 'Aucune ancienne valeur' }}</pre>
+                    <pre class="max-h-64 overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-3 font-mono text-[11px] text-slate-700">{{ log.nouvellesValeurs ? (log.nouvellesValeurs | json) : 'Aucune nouvelle valeur' }}</pre>
+                  </div>
+                </details>
+              </section>
             </div>
 
-            <div class="flex items-center justify-end pt-3 border-t border-slate-200">
-              <button
-                (click)="selectedLog.set(null)"
-                class="px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-700 text-slate-700 text-xs font-medium">
-                Fermer
-              </button>
-            </div>
+            <footer class="flex justify-end border-t border-slate-200 px-6 py-3">
+              <button type="button" (click)="fermerDetail()" class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100">Fermer</button>
+            </footer>
           </div>
         </div>
       }
@@ -176,6 +209,8 @@ export class AuditLogsListComponent implements OnInit {
 
   logs = signal<AuditLog[]>([]);
   selectedLog = signal<AuditLog | null>(null);
+  readonly detail = signal<AuditLogDetail | null>(null);
+  readonly detailLoading = signal(false);
 
   filterTypeAction: string | null = null;
   filterNomTable = '';
@@ -186,7 +221,7 @@ export class AuditLogsListComponent implements OnInit {
 
   loadLogs() {
     this.auditLogService.listerOuFiltrer().subscribe({
-      next: (res) => this.logs.set(res),
+      next: (res) => this.logs.set(plusRecentsDAbord(res)),
       error: () => this.notify.error('Erreur chargement des logs d\'audit')
     });
   }
@@ -197,7 +232,7 @@ export class AuditLogsListComponent implements OnInit {
       this.filterTypeAction || undefined,
       this.filterNomTable || undefined
     ).subscribe({
-      next: (res) => this.logs.set(res),
+      next: (res) => this.logs.set(plusRecentsDAbord(res)),
       error: () => {}
     });
   }
@@ -210,6 +245,38 @@ export class AuditLogsListComponent implements OnInit {
 
   inspectLog(log: AuditLog) {
     this.selectedLog.set(log);
+    this.detail.set(null);
+    this.detailLoading.set(true);
+    this.auditLogService.detail(log.id).subscribe({
+      next: (detail) => {
+        if (this.selectedLog()?.id === log.id) this.detail.set(detail);
+        this.detailLoading.set(false);
+      },
+      error: () => {
+        // Les données de base restent affichées ; seules les informations enrichies manquent.
+        this.detailLoading.set(false);
+        this.notify.error('Informations détaillées indisponibles pour cette entrée.');
+      },
+    });
+  }
+
+  fermerDetail() {
+    this.selectedLog.set(null);
+    this.detail.set(null);
+  }
+
+  actionClass(typeAction: string): string {
+    switch (typeAction) {
+      case 'INSERTION': return 'border border-green-200 bg-green-50 text-green-800';
+      case 'MODIFICATION': return 'border border-amber-200 bg-amber-50 text-amber-800';
+      case 'SUPPRESSION': return 'border border-rose-200 bg-rose-50 text-rose-700';
+      case 'CONNEXION': return 'border border-blue-200 bg-blue-50 text-blue-800';
+      default: return 'border border-slate-200 bg-slate-100 text-slate-700';
+    }
+  }
+
+  estPosteLocal(ip?: string | null): boolean {
+    return ip === '0:0:0:0:0:0:0:1' || ip === '::1' || !!ip?.startsWith('127.');
   }
 
 
@@ -225,4 +292,10 @@ export class AuditLogsListComponent implements OnInit {
     window.URL.revokeObjectURL(url);
     this.notify.success(`Fichier ${filename} téléchargé`);
   }
+}
+
+/** Journal affiché du plus récent au plus ancien. */
+function plusRecentsDAbord(logs: AuditLog[]): AuditLog[] {
+  const horodatage = (log: AuditLog) => (log.createdAt ? new Date(log.createdAt).getTime() : 0);
+  return [...logs].sort((a, b) => horodatage(b) - horodatage(a));
 }

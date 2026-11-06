@@ -27,7 +27,7 @@ import { Structure } from '../../../core/models/structure.model';
 
             <form (ngSubmit)="saveStructure()" class="space-y-4">
               <div>
-                <label class="block text-xs font-medium text-slate-700 mb-1">Code Structure *</label>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Code Structure <span class="champ-obligatoire" aria-hidden="true">*</span></label>
                 <input
                   type="text"
                   required
@@ -36,13 +36,13 @@ import { Structure } from '../../../core/models/structure.model';
                   [disabled]="isEditing()"
                   [(ngModel)]="formData.code"
                   name="code"
-                  placeholder="UAB_VIE"
                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900 uppercase disabled:opacity-50"
                 />
+                <p class="mt-1 text-[11px] text-slate-500">Code unique en majuscules, ex. UAB_VIE.</p>
               </div>
 
               <div>
-                <label class="block text-xs font-medium text-slate-700 mb-1">Nom / Raison Sociale *</label>
+                <label class="block text-xs font-medium text-slate-700 mb-1">Nom / Raison Sociale <span class="champ-obligatoire" aria-hidden="true">*</span></label>
                 <input
                   type="text"
                   required
@@ -50,7 +50,6 @@ import { Structure } from '../../../core/models/structure.model';
                   maxlength="150"
                   [(ngModel)]="formData.nom"
                   name="nom"
-                  placeholder="UAB Vie Assurances"
                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900"
                 />
               </div>
@@ -96,10 +95,6 @@ import { Structure } from '../../../core/models/structure.model';
                   <label class="block text-xs font-medium text-slate-700 mb-1">Site web</label>
                   <input [(ngModel)]="formData.siteWeb" name="siteWeb" maxlength="255" type="url" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900" />
                 </div>
-                <div class="md:col-span-2">
-                  <label class="block text-xs font-medium text-slate-700 mb-1">Logo (URL ou chemin)</label>
-                  <input [(ngModel)]="formData.logo" name="logo" maxlength="512" class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-900" />
-                </div>
               </div>
 
 
@@ -131,7 +126,7 @@ import { Structure } from '../../../core/models/structure.model';
 } @else {
     <div class="space-y-6 max-w-7xl mx-auto">
       <app-page-header icon="structure" module="Administration" title="Structures" description="Les sociétés du groupe, leur identité juridique et leurs coordonnées.">
-<app-data-actions ressource="structures" exportPermission="entite.exporter" [ids]="exportIds()" [importPermissions]="['entite.importer']" (importer)="importOpen.set(true)" />
+<app-data-actions ressource="structures" exportPermission="entite.exporter" [ids]="exportIds()" [importPermissions]="['entite.importer']" [importFormat]="importFormats.structures" (importer)="importOpen.set(true)" />
 
           <button
             [hidden]="!auth.hasPermission('entite.creer')"

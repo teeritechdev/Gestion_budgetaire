@@ -1,175 +1,157 @@
 import { Component, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 import { NotificationService } from '../../core/services/notification.service';
+import { PasswordInputComponent } from '../../shared/components/password-input.component';
+import { AuthShellComponent } from './auth-shell.component';
+
+const CLE_IDENTIFIANT = 'uab_budget_identifiant';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [FormsModule, RouterLink, PasswordInputComponent, AuthShellComponent],
   template: `
-    <div class="min-h-screen bg-slate-50 flex flex-col justify-center items-center px-4 relative overflow-hidden">
-      <div class="w-full max-w-md z-10">
-        <!-- Logo & Header -->
-        <div class="text-center mb-8">
-          <div class="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-green-700 shadow-sm shadow-blue-500/30 mb-4 border border-blue-400/30">
-            <svg class="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-            </svg>
-          </div>
-          <h1 class="text-2xl font-bold text-white tracking-tight">Système Budgétaire</h1>
-          <p class="text-slate-600 text-sm mt-1">Module 1 : Sécurité & Gouvernance des Accès</p>
-        </div>
-
-        <!-- Login Card -->
-        <div class="bg-white/80 backdrop-blur-xl border border-slate-200 rounded-2xl p-8 shadow-2xl shadow-black/50">
-          <h2 class="text-xl font-semibold text-white mb-6">Connexion</h2>
-
-          @if (errorMessage()) {
-            <div class="mb-5 p-3.5 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-start gap-2.5">
-              <svg class="w-5 h-5 text-rose-400 shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>{{ errorMessage() }}</span>
-            </div>
-          }
-
-          <form (ngSubmit)="onSubmit()" class="space-y-5">
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1.5 uppercase tracking-wider">Nom d'utilisateur</label>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  name="username"
-                  required
-                  [(ngModel)]="username"
-                  placeholder="admin@uab.bf"
-                  class="w-full pl-10 pr-4 py-2.5 bg-slate-50/60 border border-slate-300/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label class="block text-xs font-medium text-slate-700 mb-1.5 uppercase tracking-wider">Mot de Passe</label>
-              <div class="relative">
-                <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-500">
-                  <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.8" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                </div>
-                <input
-                  [type]="showPassword ? 'text' : 'password'"
-                  name="password"
-                  required
-                  [(ngModel)]="password"
-                  placeholder="••••••••••••"
-                  class="w-full pl-10 pr-10 py-2.5 bg-slate-50/60 border border-slate-300/80 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm transition-all"
-                />
-                <button
-                  type="button"
-                  (click)="showPassword = !showPassword"
-                  class="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-500 hover:text-slate-700 transition-colors"
-                >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    @if (showPassword) {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
-                    } @else {
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                    }
-                  </svg>
-                </button>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              [disabled]="loading()"
-              class="w-full py-3 px-4 bg-green-700     text-white font-medium rounded-xl shadow-lg shadow-blue-600/30 transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              @if (loading()) {
-                <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <span>Authentification en cours...</span>
-              } @else {
-                <span>Se Connecter</span>
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                </svg>
-              }
-            </button>
-          </form>
-
-          <!-- Quick Test Helper Button -->
-          <div class="mt-6 pt-5 border-t border-slate-200 text-center">
-            <button
-              type="button"
-              (click)="fillAdminCredentials()"
-              class="text-xs text-blue-400 hover:text-blue-300 transition-colors inline-flex items-center gap-1.5"
-            >
-              <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              Remplir avec le compte par défaut (Admin UAB)
-            </button>
-          </div>
-        </div>
-
-        <p class="text-center text-xs text-slate-600 mt-6">
-          Protection par JWT & Contrôle d'accès granulaire RBAC
-        </p>
+    <app-auth-shell>
+      <div class="text-center">
+        <h1 class="text-2xl font-bold tracking-tight text-slate-900">Connexion</h1>
+        <p class="mt-1.5 text-sm text-slate-600">Connectez-vous pour accéder à votre espace.</p>
       </div>
-    </div>
-  `
+
+      @if (erreur()) {
+        <div role="alert" class="mt-6 flex items-start gap-2.5 rounded-lg border border-rose-200 bg-rose-50 px-3.5 py-3 text-sm text-rose-800">
+          <svg aria-hidden="true" class="mt-0.5 h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9" /><path d="M12 8v4.5m0 3.5h.01" /></svg>
+          <span>{{ erreur() }}</span>
+        </div>
+      }
+
+      <form (ngSubmit)="seConnecter()" class="auth-formulaire mt-6 space-y-5" novalidate>
+        <label class="block text-sm font-semibold text-slate-700">Identifiant
+          <input name="username" type="text" required autocomplete="username" autocapitalize="none" spellcheck="false"
+            [(ngModel)]="identifiant" autofocus
+            class="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-900">
+        </label>
+
+        <div>
+          <label for="mot-de-passe" class="text-sm font-semibold text-slate-700">Mot de passe</label>
+          <app-password-input inputId="mot-de-passe" name="password" required [(ngModel)]="motDePasse" autocomplete="current-password"
+            (keydown)="detecterMajuscules($event)" (keyup)="detecterMajuscules($event)" class="mt-1.5 block" />
+          @if (majusculesActives()) {
+            <p class="mt-1.5 flex items-center gap-1.5 text-xs font-medium text-amber-700">
+              <svg aria-hidden="true" class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4l7 8h-4v4H9v-4H5zM9 20h6" /></svg>
+              Verrouillage des majuscules activé
+            </p>
+          }
+        </div>
+
+        <label class="flex cursor-pointer items-center gap-2.5 text-sm text-slate-700">
+          <input type="checkbox" name="memoriser" [(ngModel)]="memoriser" class="h-4 w-4 accent-green-700">
+          Mémoriser mon identifiant
+        </label>
+
+        <button type="submit" [disabled]="enCours()"
+          class="flex w-full items-center justify-center gap-2 rounded-lg bg-green-700 px-4 py-3 text-sm font-semibold text-white hover:bg-green-600 disabled:cursor-wait disabled:opacity-70">
+          @if (enCours()) {
+            <svg aria-hidden="true" class="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="3" class="opacity-25" /><path d="M21 12a9 9 0 00-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round" /></svg>
+            Connexion…
+          } @else {
+            Se connecter
+          }
+        </button>
+      </form>
+
+      <div class="mt-5 text-center">
+        <a routerLink="/mot-de-passe-oublie" class="text-sm font-semibold text-green-700 hover:underline">Mot de passe oublié ?</a>
+      </div>
+
+      <p class="mt-8 text-center text-xs text-slate-500 sm:whitespace-nowrap">Un problème de connexion ? Contactez votre administrateur.</p>
+    </app-auth-shell>
+  `,
 })
 export class LoginComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly route = inject(ActivatedRoute);
   private readonly notify = inject(NotificationService);
 
-  username = 'admin@uab.bf';
-  password = 'Password123!';
-  showPassword = false;
-  loading = signal(false);
-  errorMessage = signal<string | null>(null);
+  readonly enCours = signal(false);
+  readonly erreur = signal<string | null>(null);
+  readonly majusculesActives = signal(false);
 
-  fillAdminCredentials() {
-    this.username = 'admin@uab.bf';
-    this.password = 'Password123!';
+  identifiant = '';
+  motDePasse = '';
+  memoriser = false;
+
+  constructor() {
+    const memorise = lireIdentifiantMemorise();
+    // Retour de « mot de passe oublié » : l'identifiant est prérempli.
+    const transmis = this.route.snapshot.queryParamMap.get('identifiant');
+    this.identifiant = transmis || memorise || '';
+    this.memoriser = !!memorise;
   }
 
-  onSubmit() {
-    if (!this.username || !this.password) {
-      this.errorMessage.set('Veuillez renseigner votre nom d’utilisateur et mot de passe.');
+  detecterMajuscules(event: KeyboardEvent): void {
+    if (typeof event.getModifierState === 'function') {
+      this.majusculesActives.set(event.getModifierState('CapsLock'));
+    }
+  }
+
+  seConnecter(): void {
+    const identifiant = this.identifiant.trim();
+    if (!identifiant || !this.motDePasse) {
+      this.erreur.set('Renseignez votre identifiant et votre mot de passe.');
       return;
     }
+    this.enCours.set(true);
+    this.erreur.set(null);
 
-    this.loading.set(true);
-    this.errorMessage.set(null);
-
-    this.authService.login({ username: this.username, password: this.password }).subscribe({
-      next: (res) => {
-        this.loading.set(false);
-        this.notify.success(`Bienvenue, ${res.prenom} ${res.nom} !`);
-        this.router.navigate(['/security/dashboard']);
-      },
-      error: (err) => {
-        this.loading.set(false);
-        if (err.status === 401 || err.status === 403) {
-          this.errorMessage.set('Identifiants incorrects. Veuillez vérifier votre nom d’utilisateur et votre mot de passe.');
-        } else {
-          this.errorMessage.set(err.error?.message || 'Impossible de se connecter au serveur backend.');
+    this.authService.login({ username: identifiant, password: this.motDePasse }).subscribe({
+      next: (reponse) => {
+        this.enCours.set(false);
+        memoriserIdentifiant(this.memoriser ? identifiant : null);
+        this.motDePasse = '';
+        if (reponse.doitChangerMotDePasse) {
+          this.notify.warning('Votre mot de passe est temporaire : choisissez-en un nouveau pour continuer.', 'Mot de passe à changer');
+          this.router.navigate(['/profil'], { queryParams: { onglet: 'securite' } });
+          return;
         }
-      }
+        this.notify.success(`Bienvenue, ${reponse.prenom} ${reponse.nom}.`);
+        this.router.navigateByUrl(this.pageDemandee());
+      },
+      error: (erreur) => {
+        this.enCours.set(false);
+        if (erreur.status === 401 || erreur.status === 403) {
+          this.erreur.set('Identifiant ou mot de passe incorrect.');
+        } else if (erreur.status === 0) {
+          this.erreur.set('Le serveur est injoignable. Vérifiez votre connexion puis réessayez.');
+        } else {
+          this.erreur.set(erreur.error?.message || 'La connexion a échoué. Réessayez dans un instant.');
+        }
+      },
     });
+  }
+
+  /** Page demandée avant la redirection vers la connexion (adresse interne uniquement). */
+  private pageDemandee(): string {
+    const retour = this.route.snapshot.queryParamMap.get('returnUrl');
+    return retour && retour.startsWith('/') && !retour.startsWith('//') && !retour.startsWith('/login') ? retour : '/dashboard';
+  }
+}
+
+function lireIdentifiantMemorise(): string | null {
+  try {
+    return localStorage.getItem(CLE_IDENTIFIANT);
+  } catch {
+    return null;
+  }
+}
+
+function memoriserIdentifiant(identifiant: string | null): void {
+  try {
+    if (identifiant) localStorage.setItem(CLE_IDENTIFIANT, identifiant);
+    else localStorage.removeItem(CLE_IDENTIFIANT);
+  } catch {
+    // Stockage indisponible (navigation privée) : l'identifiant n'est simplement pas mémorisé.
   }
 }

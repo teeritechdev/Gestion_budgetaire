@@ -5,7 +5,7 @@ export interface ServiceOrganisationnel {
   directionId: string;
   directionCode: string;
   directionLibelle: string;
-  structureCode: string;
+  structureCode: string | null;
   responsableId?: string | null;
   actif: boolean;
   createdAt?: string;

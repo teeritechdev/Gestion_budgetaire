@@ -58,6 +58,14 @@ public class PermissionAutoInitializer implements CommandLineRunner {
                 new PermissionDefinition("salarie.exporter", "Exporter les dossiers salariés (CSV/PDF)", "SECURITE"),
                 new PermissionDefinition("salarie.importer", "Importer des salariés en masse", "SECURITE"),
 
+                // Affectations des salariés (structure, direction ou service)
+                new PermissionDefinition("affectation.lire", "Consulter les affectations des salariés", "SECURITE"),
+                new PermissionDefinition("affectation.creer", "Affecter un salarié", "SECURITE"),
+                new PermissionDefinition("affectation.modifier", "Modifier une affectation", "SECURITE"),
+                new PermissionDefinition("affectation.supprimer", "Supprimer une affectation", "SECURITE"),
+                new PermissionDefinition("affectation.exporter", "Exporter les affectations (CSV/PDF)", "SECURITE"),
+                new PermissionDefinition("affectation.importer", "Importer des affectations en masse", "SECURITE"),
+
                 // 3. Rôles (roles)
                 new PermissionDefinition("role.lire", "Consulter les rôles RBAC", "SECURITE"),
                 new PermissionDefinition("role.creer", "Créer un rôle et lier des permissions", "SECURITE"),

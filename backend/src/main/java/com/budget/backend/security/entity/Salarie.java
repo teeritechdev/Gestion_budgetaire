@@ -39,18 +39,24 @@ public class Salarie {
     @Column(length = 30)
     private String telephone;
 
-    @Column(unique = true, nullable = false, length = 150)
+    @Column(unique = true, length = 150)
     private String email;
 
     @Column(length = 100)
     private String poste;
 
-    @Column(name = "date_embauche", nullable = false)
+    @Column(name = "date_embauche")
     private LocalDate dateEmbauche;
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "service_id", nullable = false)
-    private ServiceOrganisationnel service;
+    @Column(name = "date_naissance")
+    private LocalDate dateNaissance;
+
+    @Column(name = "lieu_naissance", length = 100)
+    private String lieuNaissance;
+
+    /** Numéro de la carte nationale d'identité burkinabè (CNIB), ex. B12345678. */
+    @Column(name = "numero_cnib", unique = true, length = 20)
+    private String numeroCnib;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")

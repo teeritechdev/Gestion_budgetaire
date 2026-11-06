@@ -5,7 +5,7 @@ import { ImportCsvPageComponent } from '../../../shared/components/import-csv-pa
 import { DataActionsComponent } from '../../../shared/components/data-actions.component';
 import { FormPageComponent } from '../../../shared/components/form-page.component';
 import { RecordDetailsDialogComponent } from '../../../shared/components/record-details-dialog.component';
-import { NativeDatePickerDirective } from '../../../shared/directives/native-date-picker.directive';
+import { DatePickerComponent } from '../../../shared/components/date-picker.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -23,7 +23,7 @@ import {
   standalone: true,
   imports: [PageHeaderComponent, AppIconComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, 
     RecordDetailsDialogComponent,
-    NativeDatePickerDirective,
+    DatePickerComponent,
     CommonModule,
     FormsModule,
     DatePipe,
@@ -50,36 +50,30 @@ import {
           }
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-1.5 text-xs text-slate-600"
-              >Code du plan<input
+              >Code du plan <span class="champ-obligatoire" aria-hidden="true">*</span><input
                 required
                 maxlength="50"
                 [(ngModel)]="form.codePlan"
                 name="codePlan"
-                placeholder="PS-2026"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" /></label
+                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" /><span class="block text-[11px] font-normal text-slate-500">Code unique, ex. PS-2026.</span></label
             ><label class="space-y-1.5 text-xs text-slate-600"
-              >Libellé<input
+              >Libellé <span class="champ-obligatoire" aria-hidden="true">*</span><input
                 required
                 maxlength="150"
                 [(ngModel)]="form.libelle"
                 name="libelle"
-                placeholder="Plan budgétaire 2026–2030"
                 class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" /></label
             ><label class="space-y-1.5 text-xs text-slate-600"
-              >Date de début<input
+              >Date de début <span class="champ-obligatoire" aria-hidden="true">*</span><app-date-picker
                 required
-                type="date"
                 [(ngModel)]="form.dateDebut"
-                name="dateDebut"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" /></label
+                name="dateDebut" /></label
             ><label class="space-y-1.5 text-xs text-slate-600"
-              >Date de fin<input
+              >Date de fin <span class="champ-obligatoire" aria-hidden="true">*</span><app-date-picker
                 required
-                type="date"
                 [min]="form.dateDebut"
                 [(ngModel)]="form.dateFin"
                 name="dateFin"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
             /></label>
           </div>
           <label class="flex items-center gap-2 text-xs text-slate-700"
@@ -118,7 +112,7 @@ import {
 } @else {
     <div class="mx-auto max-w-7xl space-y-6">
       <app-page-header icon="plans" module="Gestion budgétaire" title="Plans budgétaires" description="Fixez le cap pluriannuel : périodes, priorités et statut de chaque plan.">
-<app-data-actions ressource="plans-strategiques" exportPermission="plan.exporter" [ids]="exportIds()" [importPermissions]="['plan.importer']" (importer)="importOpen.set(true)" />
+<app-data-actions ressource="plans-strategiques" exportPermission="plan.exporter" [ids]="exportIds()" [importPermissions]="['plan.importer']" [importFormat]="importFormats.plans" (importer)="importOpen.set(true)" />
           @if (canCreate()) {
             <button
               (click)="openCreate()"

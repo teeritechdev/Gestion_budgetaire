@@ -8,6 +8,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule, DecimalPipe } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { BudgetService } from '../../../core/services/budget.service';
@@ -42,7 +43,7 @@ interface RepartitionCspDistributionRow {
 @Component({
   selector: 'app-repartition-csp',
   standalone: true,
-  imports: [PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, RecordDetailsDialogComponent, CommonModule, FormsModule, DecimalPipe],
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, RecordDetailsDialogComponent, CommonModule, FormsModule, DecimalPipe],
   templateUrl: './repartition-csp.component.html',
 })
 export class RepartitionCspComponent implements OnInit {

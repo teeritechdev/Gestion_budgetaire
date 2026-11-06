@@ -1,5 +1,7 @@
 import { AppIconComponent } from '../../shared/components/app-icon.component';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { AvatarComponent } from '../../shared/components/avatar.component';
+import { ProfilService } from '../../core/services/profil.service';
+import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs/operators';
@@ -14,9 +16,10 @@ interface NavigationGroup { label: string; items: NavigationItem[]; }
 @Component({
   selector: 'app-layout',
   standalone: true,
-  imports: [AppIconComponent, RouterOutlet, RouterLink, RouterLinkActive],
+  imports: [AppIconComponent, AvatarComponent, RouterOutlet, RouterLink, RouterLinkActive],
   template: `
-    <div class="min-h-screen bg-slate-50 text-slate-900">
+    <!-- Seule la zone <main> défile : en-tête et menu restent fixes, sans décalage. -->
+    <div class="h-dvh overflow-hidden bg-slate-50 text-slate-900">
       @if (mobileOpen()) {
         <button aria-label="Fermer le menu" class="fixed inset-0 z-30 bg-black/60 md:hidden" (click)="mobileOpen.set(false)"></button>
       }
@@ -56,21 +59,58 @@ interface NavigationGroup { label: string; items: NavigationItem[]; }
           }
         </nav>
         <div class="border-t border-slate-200 p-4">
-          <div class="flex items-center gap-3 rounded-xl bg-slate-100 p-3"><div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-500/15 text-sm font-semibold text-blue-300">{{ initials() }}</div><div class="min-w-0 flex-1"><p class="truncate text-xs font-medium text-white">{{ auth.currentUser()?.prenom }} {{ auth.currentUser()?.nom }}</p><p class="truncate text-[10px] text-slate-600">{{ auth.role() }}</p></div><button (click)="logout()" title="Déconnexion" class="text-slate-600 hover:text-rose-400">↗</button></div>
+          <a routerLink="/profil" (click)="mobileOpen.set(false)" class="sidebar-utilisateur flex items-center gap-3 rounded-xl bg-slate-100 p-3 hover:bg-slate-200/70" title="Mon profil">
+            <app-avatar [photoUrl]="profilService.photoUrl()" taille="sm" />
+            <div class="min-w-0 flex-1"><p class="truncate text-xs font-medium text-slate-900">{{ auth.currentUser()?.prenom }} {{ auth.currentUser()?.nom }}</p><p class="truncate text-[10px] text-slate-600">{{ auth.role() }}</p></div>
+            <svg aria-hidden="true" class="h-4 w-4 shrink-0 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6" /></svg>
+          </a>
         </div>
       </aside>
-      <div class="min-h-screen md:pl-72">
-        <header class="app-header sticky top-0 z-20 flex h-16 items-center justify-between border-b-2 border-green-800 bg-green-700 px-4 md:px-8">
+      <div class="flex h-dvh min-w-0 flex-col md:pl-72">
+        <header class="app-header z-20 flex h-16 shrink-0 items-center justify-between border-b-2 border-green-800 bg-green-700 px-4 md:px-8">
           <div class="flex items-center gap-3"><button aria-label="Ouvrir le menu" (click)="mobileOpen.set(true)" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-slate-700 md:hidden">☰</button><span class="text-green-700"><app-icon name="brand" classe="h-5 w-5" /></span><span class="text-sm font-semibold text-slate-800">Plateforme de Gestion Budgétaire</span></div>
-          <div class="flex items-center gap-3"><span class="hidden max-w-56 truncate text-xs text-slate-600 sm:inline">{{ auth.currentUser()?.email }}</span><button (click)="logout()" class="rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-700 hover:border-rose-500/50 hover:text-rose-300">Déconnexion</button></div>
+          <div class="menu-utilisateur relative">
+            <button type="button" (click)="menuOuvert.set(!menuOuvert())" aria-haspopup="menu" [attr.aria-expanded]="menuOuvert()"
+              [attr.aria-label]="'Compte de ' + (auth.currentUser()?.prenom || '') + ' ' + (auth.currentUser()?.nom || '')"
+              [title]="(auth.currentUser()?.prenom || '') + ' ' + (auth.currentUser()?.nom || '')"
+              class="menu-utilisateur-bouton flex items-center justify-center rounded-full">
+              <app-avatar [photoUrl]="profilService.photoUrl()" taille="sm" />
+            </button>
+            @if (menuOuvert()) {
+              <div role="menu" class="menu-utilisateur-panneau absolute right-0 z-50 mt-2 w-72 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg" (keydown.escape)="menuOuvert.set(false)">
+                <div class="flex items-center gap-3 border-b border-slate-200 px-4 py-3">
+                  <app-avatar [photoUrl]="profilService.photoUrl()" taille="md" />
+                  <div class="min-w-0">
+                    <p class="truncate text-sm font-semibold text-slate-900">{{ auth.currentUser()?.prenom }} {{ auth.currentUser()?.nom }}</p>
+                    <p class="truncate text-xs text-slate-500">{{ auth.currentUser()?.email }}</p>
+                  </div>
+                </div>
+                <div class="py-1">
+                  <a role="menuitem" routerLink="/profil" [queryParams]="{ onglet: 'informations' }" (click)="menuOuvert.set(false)" class="menu-utilisateur-item">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="4" /><path d="M4.5 20a7.5 7.5 0 0115 0" /></svg>Mon profil
+                  </a>
+                  <a role="menuitem" routerLink="/profil" [queryParams]="{ onglet: 'securite' }" (click)="menuOuvert.set(false)" class="menu-utilisateur-item">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="5" y="10.5" width="14" height="9.5" rx="2" /><path d="M8 10.5V8a4 4 0 018 0v2.5" /></svg>Sécurité et mot de passe
+                  </a>
+                </div>
+                <div class="border-t border-slate-200 py-1">
+                  <button type="button" role="menuitem" (click)="logout()" class="menu-utilisateur-item menu-utilisateur-deconnexion">
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M15 4h3a2 2 0 012 2v12a2 2 0 01-2 2h-3M10 16l-4-4 4-4M6 12h10" /></svg>Se déconnecter
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
         </header>
-        <main class="p-4 md:p-8"><router-outlet /></main>
+        <main id="app-main" class="app-main min-w-0 flex-1 overflow-auto p-4 md:p-8"><router-outlet /></main>
       </div>
     </div>`
 })
 export class AppLayoutComponent {
   readonly auth = inject(AuthService);
   readonly mobileOpen = signal(false);
+  readonly menuOuvert = signal(false);
+  readonly profilService = inject(ProfilService);
   private readonly router = inject(Router);
   /** Adresse courante (signal) : déplie les sous-onglets de la page active. */
   private readonly currentUrl = signal(this.router.url);
@@ -87,14 +127,14 @@ export class AppLayoutComponent {
   }
   readonly groups: NavigationGroup[] = [
     { label: 'Gestion budgétaire', items: [
-      { label: 'Plans budgétaires', path: '/budget/plans', icon: 'plans' },
       { label: 'Nomenclature', path: '/budget/nomenclature', icon: 'nomenclature', children: [
         { label: 'Objectifs stratégiques', code: 'OS', onglet: 'os', permission: 'os.lire' },
         { label: 'Objectifs opérationnels', code: 'OP', onglet: 'op', permission: 'op.lire' },
         { label: 'Activités catalogue', code: 'AC', onglet: 'ac', permission: 'activite.lire' }
       ] },
-      { label: 'Allocations budgétaires', path: '/budget/allocations', icon: 'allocations' },
-      { label: 'Exercices budgétaires', path: '/budget/exercices', icon: 'exercices' }
+      { label: 'Plans budgétaires', path: '/budget/plans', icon: 'plans' },
+      { label: 'Exercices budgétaires', path: '/budget/exercices', icon: 'exercices' },
+      { label: 'Allocations budgétaires', path: '/budget/allocations', icon: 'allocations' }
     ] },
     { label: 'Répartition & contrôle', items: [
       { label: 'Règles de répartition CSP', path: '/budget/repartition-csp', icon: 'repartition' },
@@ -107,6 +147,7 @@ export class AppLayoutComponent {
       { label: 'Directions', path: '/security/directions', icon: 'directions' },
       { label: 'Services', path: '/security/services', icon: 'services' },
       { label: 'Salariés', path: '/security/salaries', icon: 'salaries' },
+      { label: 'Affectations', path: '/security/affectations', icon: 'affectations' },
       { label: 'Utilisateurs', path: '/security/utilisateurs', icon: 'utilisateurs' },
       { label: 'Rôles & permissions', path: '/security/roles-permissions', icon: 'roles' },
       { label: 'Journal d’audit', path: '/security/audit-logs', icon: 'audit' }
@@ -123,6 +164,11 @@ export class AppLayoutComponent {
   canAccessDashboard(): boolean {
     return this.visibleGroups().length > 0;
   }
-  initials(): string { const user = this.auth.currentUser(); return `${user?.prenom?.charAt(0) || ''}${user?.nom?.charAt(0) || 'U'}`; }
-  logout(): void { this.auth.logout(); }
+  logout(): void { this.menuOuvert.set(false); this.auth.logout(); }
+
+  /** Ferme le menu utilisateur au clic en dehors. */
+  @HostListener('document:click', ['$event'])
+  fermerMenu(event: MouseEvent): void {
+    if (this.menuOuvert() && !(event.target as HTMLElement).closest('.menu-utilisateur')) this.menuOuvert.set(false);
+  }
 }

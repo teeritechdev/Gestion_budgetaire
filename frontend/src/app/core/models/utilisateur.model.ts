@@ -1,5 +1,5 @@
 import { Role } from './role.model';
-import { ServiceOrganisationnel } from './service-organisationnel.model';
+import { AffectationResume } from './affectation.model';
 
 export interface Utilisateur {
   id?: string;
@@ -13,7 +13,7 @@ export interface Utilisateur {
   email: string;
   poste?: string | null;
   dateEmbauche: string;
-  service: ServiceOrganisationnel;
+  affectation: AffectationResume | null;
   managerId?: string | null;
   role: Role;
   actif: boolean;

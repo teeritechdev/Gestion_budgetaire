@@ -5,6 +5,7 @@ import com.budget.backend.security.dto.UtilisateurRequestDto;
 import com.budget.backend.security.dto.UtilisateurResponseDto;
 import jakarta.validation.Valid;
 import com.budget.backend.security.repository.UtilisateurRepository;
+import com.budget.backend.security.security.PolitiqueMotDePasse;
 import com.budget.backend.security.service.UtilisateurService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -70,9 +71,7 @@ public class UtilisateurController {
         if (request == null || request.utilisateur() == null || request.motDePasse() == null || request.motDePasse().isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le mot de passe est obligatoire.");
         }
-        if (request.motDePasse().length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le mot de passe doit contenir au moins 8 caractères.");
-        }
+        PolitiqueMotDePasse.verifier(request.motDePasse(), request.utilisateur().username());
         validerProfilUtilisateur(request.utilisateur());
         String userId = getUserIdFromAuth(authentication);
         UtilisateurResponseDto nouveau = utilisateurService.creerUtilisateur(
@@ -90,8 +89,8 @@ public class UtilisateurController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Les informations utilisateur sont obligatoires.");
         }
         String nouveauMotDePasse = request.motDePasse();
-        if (nouveauMotDePasse != null && !nouveauMotDePasse.isBlank() && nouveauMotDePasse.length() < 8) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Le mot de passe doit contenir au moins 8 caractères.");
+        if (nouveauMotDePasse != null && !nouveauMotDePasse.isBlank()) {
+            PolitiqueMotDePasse.verifier(nouveauMotDePasse, request.utilisateur().username());
         }
         validerProfilUtilisateur(request.utilisateur());
         String userId = getUserIdFromAuth(authentication);
@@ -102,7 +101,7 @@ public class UtilisateurController {
 
     private void validerProfilUtilisateur(UtilisateurRequestDto utilisateur) {
         if (utilisateur.salarieId() == null && (utilisateur.sexe() == null
-                || !java.util.Set.of("FEMME", "HOMME", "AUTRE", "NON_RENSEIGNE").contains(utilisateur.sexe()))) {
+                || !java.util.Set.of("FEMME", "HOMME").contains(utilisateur.sexe()))) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Sélectionnez une valeur valide pour le sexe.");
         }
         if (utilisateur.telephone() != null && utilisateur.telephone().length() > 30) {

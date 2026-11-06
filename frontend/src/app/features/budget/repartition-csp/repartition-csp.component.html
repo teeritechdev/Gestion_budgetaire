@@ -25,19 +25,20 @@
       }
       <div class="grid gap-4 sm:grid-cols-2">
         <label class="space-y-1.5 text-xs text-slate-600 sm:col-span-2"
-          >Allocation structure CSP<select
+          >Allocation structure CSP<app-search-select
             [(ngModel)]="form.allocationStructureId"
             name="allocationStructureId"
             (ngModelChange)="onSelectionChange()"
-            class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-white"
+            placeholder="Choisir l’allocation à répartir…"
+            triggerClass="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-xs text-white"
           >
-            <option value="">Choisir l’allocation à répartir…</option>
             @for (allocation of cspAllocationStructures(); track allocation.id) {
-              <option [value]="allocation.id">
-                {{ allocationStructureLabel(allocation.id, allocation.budgetAllocationActivite?.activiteCatalogue?.id || '') }}
-              </option>
+              <app-search-option
+                [value]="allocation.id"
+                [label]="allocationStructureLabel(allocation.id, allocation.budgetAllocationActivite?.activiteCatalogue?.id || '')"
+              />
             }
-          </select></label
+          </app-search-select></label
         ><label class="space-y-1.5 text-xs text-slate-600"
           >Type de clé<select
             [(ngModel)]="form.cleType"

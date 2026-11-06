@@ -7,6 +7,8 @@ import { FormPageComponent } from '../../../shared/components/form-page.componen
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterLink } from '@angular/router';
+import { DatePickerComponent } from '../../../shared/components/date-picker.component';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { AuthService } from '../../../core/services/auth.service';
@@ -25,7 +27,7 @@ type SalarieDraft = Omit<SalarieRequest, 'sexe'> & { sexe: SexeSalarie | '' };
 @Component({
   selector: 'app-salaries-list',
   standalone: true,
-  imports: [PageHeaderComponent, RowActionsComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, FormsModule, RecordDetailsDialogComponent],
+  imports: [RouterLink, DatePickerComponent, PageHeaderComponent, RowActionsComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, CommonModule, FormsModule, RecordDetailsDialogComponent],
   template: `
 @if (importOpen()) {
 <app-import-csv-page section="Salariés" [format]="importFormats.salaries" (back)="importOpen.set(false)" (imported)="loadReferences(); refresh()" />
@@ -37,48 +39,42 @@ type SalarieDraft = Omit<SalarieRequest, 'sexe'> & { sexe: SexeSalarie | '' };
             <section class="space-y-3 rounded-xl border border-slate-200 p-4">
               <h3 class="text-sm font-semibold text-slate-900">Identité</h3>
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label class="block space-y-1 text-xs">Nom de famille *<input required maxlength="100" [(ngModel)]="draft.nom" name="nom" placeholder="Ex. : Traoré" class="w-full rounded-lg border border-slate-300 p-2"></label>
-                <label class="block space-y-1 text-xs">Prénom *<input required maxlength="100" [(ngModel)]="draft.prenom" name="prenom" placeholder="Ex. : Aïssata" class="w-full rounded-lg border border-slate-300 p-2"></label>
-                <label class="block space-y-1 text-xs">Sexe *
+                <label class="block space-y-1 text-xs">Nom de famille <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="100" [(ngModel)]="draft.nom" name="nom" class="w-full rounded-lg border border-slate-300 p-2"></label>
+                <label class="block space-y-1 text-xs">Prénom <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="100" [(ngModel)]="draft.prenom" name="prenom" class="w-full rounded-lg border border-slate-300 p-2"></label>
+                <label class="block space-y-1 text-xs">Sexe <span class="champ-obligatoire" aria-hidden="true">*</span>
                   <select required [(ngModel)]="draft.sexe" name="sexe" class="w-full rounded-lg border border-slate-300 p-2">
                     <option value="">Sélectionner</option>
                     <option value="HOMME">Masculin</option>
                     <option value="FEMME">Féminin</option>
-                    <option value="AUTRE">Autre</option>
-                    <option value="NON_RENSEIGNE">Non renseigné</option>
                   </select>
                 </label>
-                <label class="block space-y-1 text-xs">Téléphone<input type="tel" maxlength="30" [(ngModel)]="draft.telephone" name="telephone" placeholder="Ex. : +226 70 00 00 00" class="w-full rounded-lg border border-slate-300 p-2"></label>
+                <label class="block space-y-1 text-xs">Téléphone<input type="tel" maxlength="30" [(ngModel)]="draft.telephone" name="telephone" class="w-full rounded-lg border border-slate-300 p-2"><span class="block text-[11px] font-normal text-slate-500">Avec l’indicatif, ex. +226 70 00 00 00.</span></label>
+                <label class="block space-y-1 text-xs">Date de naissance<app-date-picker [(ngModel)]="draft.dateNaissance" name="dateNaissance" [max]="hier" /></label>
+                <label class="block space-y-1 text-xs">Lieu de naissance<input maxlength="100" [(ngModel)]="draft.lieuNaissance" name="lieuNaissance" class="w-full rounded-lg border border-slate-300 p-2"></label>
+                <label class="block space-y-1 text-xs">N° CNIB
+                  <input #cnib="ngModel" maxlength="16" [(ngModel)]="draft.numeroCnib" (ngModelChange)="draft.numeroCnib = normaliserCnib($event)" name="numeroCnib"
+                    pattern="B[0-9]{5,15}" autocomplete="off" class="w-full rounded-lg border border-slate-300 p-2 font-mono uppercase">
+                  @if (cnib.invalid && (cnib.touched || cnib.dirty) && draft.numeroCnib) {
+                    <span class="block text-[11px] font-normal text-rose-700">Le numéro CNIB commence par la lettre B suivie de chiffres (ex. B12345678).</span>
+                  } @else {
+                    <span class="block text-[11px] font-normal text-slate-500">Carte nationale d’identité burkinabè : B suivi de chiffres.</span>
+                  }
+                </label>
               </div>
             </section>
 
             <section class="space-y-3 rounded-xl border border-slate-200 p-4">
               <h3 class="text-sm font-semibold text-slate-900">Informations professionnelles</h3>
               <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label class="block space-y-1 text-xs">Matricule *<input required maxlength="50" [(ngModel)]="draft.matricule" name="matricule" placeholder="Ex. : EMP-2026-001" class="w-full rounded-lg border border-slate-300 p-2 uppercase"></label>
-                <label class="block space-y-1 text-xs">Adresse e-mail professionnelle *<input type="email" required maxlength="150" [(ngModel)]="draft.email" name="email" placeholder="prenom.nom@uab.bf" class="w-full rounded-lg border border-slate-300 p-2"></label>
-                <label class="block space-y-1 text-xs">Fonction / poste<input maxlength="100" [(ngModel)]="draft.poste" name="poste" placeholder="Ex. : Contrôleur de gestion" class="w-full rounded-lg border border-slate-300 p-2"></label>
-                <label class="block space-y-1 text-xs">Date d’embauche *<input type="date" required [(ngModel)]="draft.dateEmbauche" name="dateEmbauche" class="w-full rounded-lg border border-slate-300 p-2"></label>
-              </div>
-            </section>
-
-            <section class="space-y-3 rounded-xl border border-slate-200 p-4">
-              <h3 class="text-sm font-semibold text-slate-900">Affectation</h3>
-              <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <label class="block space-y-1 text-xs">Service de rattachement *
-                  <select required [(ngModel)]="draft.serviceId" name="serviceId" class="w-full rounded-lg border border-slate-300 p-2">
-                    <option value="">Choisir un service</option>
-                    @for (service of services(); track service.id) { <option [value]="service.id">{{ service.libelle }} ({{ service.code }})</option> }
-                  </select>
-                </label>
-                <label class="block space-y-1 text-xs">Manager direct (N+1)
-                  <select [(ngModel)]="draft.managerId" name="managerId" class="w-full rounded-lg border border-slate-300 p-2">
-                    <option [ngValue]="null">Aucun manager</option>
-                    @for (manager of availableManagers(); track manager.id) { <option [ngValue]="manager.id">{{ manager.prenom }} {{ manager.nom }} — {{ manager.matricule }}</option> }
-                  </select>
-                </label>
+                <label class="block space-y-1 text-xs">Matricule <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="50" [(ngModel)]="draft.matricule" name="matricule" class="w-full rounded-lg border border-slate-300 p-2 uppercase"><span class="block text-[11px] font-normal text-slate-500">Identifiant RH unique, ex. EMP-2026-001.</span></label>
+                <label class="block space-y-1 text-xs">Adresse e-mail professionnelle<input type="email" maxlength="150" [(ngModel)]="draft.email" name="email" class="w-full rounded-lg border border-slate-300 p-2"></label>
+                <label class="block space-y-1 text-xs">Fonction / poste <span class="champ-obligatoire" aria-hidden="true">*</span><input required maxlength="100" [(ngModel)]="draft.poste" name="poste" class="w-full rounded-lg border border-slate-300 p-2"></label>
+                <label class="block space-y-1 text-xs">Date d’embauche<app-date-picker [(ngModel)]="draft.dateEmbauche" name="dateEmbauche"/></label>
               </div>
               <label class="flex items-center gap-2 text-xs"><input type="checkbox" [(ngModel)]="draft.actif" name="actif"> Salarié actif (un salarié inactif ne peut pas se connecter)</label>
+              @if (!editingId()) {
+                <p class="rounded-lg bg-slate-50 px-3 py-2 text-[11px] text-slate-600">Après l’enregistrement, rattachez le salarié à sa structure, direction ou service depuis l’onglet <span class="font-semibold">Affectations</span>.</p>
+              }
             </section>
 
             <div class="form-page-actions">
@@ -90,19 +86,14 @@ type SalarieDraft = Omit<SalarieRequest, 'sexe'> & { sexe: SexeSalarie | '' };
 </app-form-page>
 } @else {
     <div class="mx-auto max-w-7xl space-y-6">
-      <app-page-header icon="salaries" module="Administration" title="Salariés" description="Les dossiers des collaborateurs : identité, poste, service et manager.">
-<app-data-actions ressource="salaries" exportPermission="salarie.exporter" [ids]="exportIds()" [importPermissions]="['salarie.importer']" (importer)="importOpen.set(true)" />@if (auth.hasPermission('salarie.creer')) {
-          <button type="button" (click)="openForm()" [disabled]="!services().length" class="whitespace-nowrap rounded-xl bg-green-700 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600 disabled:opacity-50">＋ Nouveau salarié</button>
+      <app-page-header icon="salaries" module="Administration" title="Salariés" description="Les dossiers des collaborateurs : identité, poste et affectation.">
+<app-data-actions ressource="salaries" exportPermission="salarie.exporter" [ids]="exportIds()" [importPermissions]="['salarie.importer']" [importFormat]="importFormats.salaries" (importer)="importOpen.set(true)" />@if (auth.hasPermission('salarie.creer')) {
+          <button type="button" (click)="openForm()" class="whitespace-nowrap rounded-xl bg-green-700 px-4 py-2 text-xs font-semibold text-white hover:bg-green-600">＋ Nouveau salarié</button>
         }
 </app-page-header>
 
       @if (error()) {
         <div role="alert" class="rounded-xl border border-rose-300 bg-rose-50 p-3 text-sm text-rose-700">{{ error() }}</div>
-      }
-      @if (auth.hasPermission('salarie.creer') && !loading() && !services().length) {
-        <div class="rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
-          Créez d’abord un service (onglet Services) pour pouvoir y rattacher des salariés, ou vérifiez la permission service.lire.
-        </div>
       }
 
       <div class="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4">
@@ -125,8 +116,8 @@ type SalarieDraft = Omit<SalarieRequest, 'sexe'> & { sexe: SexeSalarie | '' };
           <table class="w-full text-left text-xs">
             <thead class="bg-slate-50 text-slate-600">
               <tr>
-                <th class="p-3">Salarié</th><th class="p-3">Matricule</th><th class="p-3">Poste</th><th class="p-3">Service</th>
-                <th class="p-3">Manager (N+1)</th><th class="p-3">Compte</th><th class="p-3">Statut</th><th class="p-3 text-right">Actions</th>
+                <th class="p-3">Salarié</th><th class="p-3">Matricule</th><th class="p-3">Poste</th><th class="p-3">Affectation</th>
+                <th class="p-3">Compte</th><th class="p-3">Statut</th><th class="p-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-200">
@@ -134,13 +125,22 @@ type SalarieDraft = Omit<SalarieRequest, 'sexe'> & { sexe: SexeSalarie | '' };
                 <tr>
                   <td class="p-3">
                     <p class="font-semibold text-white">{{ salarie.prenom }} {{ salarie.nom }}</p>
-                    <p class="text-[11px] text-slate-500">{{ salarie.email }}</p>
+                    @if (salarie.email) { <p class="text-[11px] text-slate-500">{{ salarie.email }}</p> }
                     @if (salarie.telephone) { <p class="text-[11px] text-slate-500">{{ salarie.telephone }}</p> }
                   </td>
                   <td class="p-3 font-mono">{{ salarie.matricule }}</td>
                   <td class="p-3">{{ salarie.poste || '—' }}</td>
-                  <td class="p-3">{{ salarie.service.libelle || 'Non affecté' }}</td>
-                  <td class="p-3">{{ managerName(salarie.managerId) || '— (Premier niveau)' }}</td>
+                  <td class="p-3">
+                    @if (salarie.affectation; as affectation) {
+                      <p class="font-medium text-slate-900">{{ affectation.cibleLibelle }}</p>
+                      <p class="font-mono text-[11px] text-slate-500">{{ affectation.chemin }}</p>
+                    } @else {
+                      <span class="text-amber-700">Non affecté</span>
+                    }
+                    @if (auth.hasPermission('affectation.lire')) {
+                      <a [routerLink]="['/security/affectations']" [queryParams]="{ salarie: salarie.id }" class="mt-0.5 inline-block text-[11px] font-semibold text-green-700 hover:underline">Affectations →</a>
+                    }
+                  </td>
                   <td class="p-3">
                     @if (!canSeeAccounts) { <span class="text-slate-400">—</span> }
                     @else if (accountFor(salarie.id); as compte) { <span class="text-blue-700">{{ compte.username }}</span> }
@@ -183,7 +183,6 @@ export class SalariesListComponent implements OnInit {
   private readonly notifications = inject(NotificationService);
 
   readonly salaries = signal<Salarie[]>([]);
-  readonly tousLesSalaries = signal<Salarie[]>([]);
   readonly services = signal<ServiceOrganisationnel[]>([]);
   readonly comptes = signal<Utilisateur[]>([]);
   readonly formOpen = signal(false);
@@ -212,11 +211,9 @@ export class SalariesListComponent implements OnInit {
       comptes: this.canSeeAccounts
         ? this.utilisateurService.listerOuFiltrer().pipe(catchError(() => of([] as Utilisateur[])))
         : of([] as Utilisateur[]),
-      tous: this.salarieService.lister().pipe(catchError(() => of([] as Salarie[]))),
     }).subscribe((data) => {
       this.services.set(data.services);
       this.comptes.set(data.comptes);
-      this.tousLesSalaries.set(data.tous);
     });
   }
 
@@ -243,23 +240,13 @@ export class SalariesListComponent implements OnInit {
     this.refresh();
   }
 
-  managerName(managerId?: string | null): string | null {
-    if (!managerId) return null;
-    const manager = this.tousLesSalaries().find((salarie) => salarie.id === managerId);
-    return manager ? `${manager.prenom} ${manager.nom}` : null;
-  }
-
   accountFor(salarieId: string): Utilisateur | undefined {
     return this.comptes().find((compte) => compte.salarieId === salarieId);
   }
 
-  availableManagers(): Salarie[] {
-    return this.tousLesSalaries().filter((salarie) => salarie.actif && salarie.id !== this.editingId());
-  }
-
   openForm(): void {
     this.editingId.set('');
-    this.draft = { ...this.emptyDraft(), serviceId: this.serviceFilter || this.services()[0]?.id || '' };
+    this.draft = this.emptyDraft();
     this.formOpen.set(true);
   }
 
@@ -269,12 +256,15 @@ export class SalariesListComponent implements OnInit {
       matricule: salarie.matricule,
       nom: salarie.nom,
       prenom: salarie.prenom,
-      sexe: salarie.sexe,
+      // Anciennes valeurs (Autre, Non renseigné) : à ressaisir, seuls Masculin et Féminin sont proposés.
+      sexe: salarie.sexe === 'HOMME' || salarie.sexe === 'FEMME' ? salarie.sexe : '',
       telephone: salarie.telephone || '',
-      email: salarie.email,
+      email: salarie.email || '',
       poste: salarie.poste || '',
-      dateEmbauche: salarie.dateEmbauche,
-      serviceId: salarie.service?.id || '',
+      dateEmbauche: salarie.dateEmbauche || '',
+      dateNaissance: salarie.dateNaissance || '',
+      lieuNaissance: salarie.lieuNaissance || '',
+      numeroCnib: salarie.numeroCnib || '',
       managerId: salarie.managerId || null,
       actif: salarie.actif,
     };
@@ -283,9 +273,16 @@ export class SalariesListComponent implements OnInit {
 
   save(): void {
     const d = this.draft;
-    if (!d.matricule.trim() || !d.nom.trim() || !d.prenom.trim() || !d.sexe || !d.email.trim()
-      || !d.dateEmbauche || !d.serviceId) {
+    if (!d.matricule.trim() || !d.nom.trim() || !d.prenom.trim() || !d.sexe || !d.poste?.trim()) {
       this.notifications.warning('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+    if (d.numeroCnib && !/^B\d{5,15}$/.test(d.numeroCnib)) {
+      this.notifications.warning('Le numéro CNIB doit commencer par B suivi de chiffres (ex. B12345678).');
+      return;
+    }
+    if (d.dateNaissance && d.dateEmbauche && d.dateNaissance >= d.dateEmbauche) {
+      this.notifications.warning('La date de naissance doit être antérieure à la date d’embauche.');
       return;
     }
     const request: SalarieRequest = {
@@ -294,10 +291,12 @@ export class SalariesListComponent implements OnInit {
       prenom: d.prenom.trim(),
       sexe: d.sexe,
       telephone: d.telephone?.trim() || null,
-      email: d.email.trim(),
-      poste: d.poste?.trim() || null,
-      dateEmbauche: d.dateEmbauche,
-      serviceId: d.serviceId,
+      email: d.email?.trim() || null,
+      poste: d.poste!.trim(),
+      dateEmbauche: d.dateEmbauche || null,
+      dateNaissance: d.dateNaissance || null,
+      lieuNaissance: d.lieuNaissance?.trim() || null,
+      numeroCnib: d.numeroCnib || null,
       managerId: d.managerId || null,
       actif: d.actif,
     };
@@ -329,6 +328,18 @@ export class SalariesListComponent implements OnInit {
     });
   }
 
+  /** Veille du jour : borne haute de la date de naissance. */
+  readonly hier = (() => {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  })();
+
+  /** Majuscules, sans espaces (saisie « b 1234 5678 » → « B12345678 »). */
+  normaliserCnib(valeur: string | null): string {
+    return (valeur ?? '').replace(/\s/g, '').toUpperCase();
+  }
+
   private emptyDraft(): SalarieDraft {
     return {
       matricule: `EMP-${new Date().getFullYear()}-${Math.floor(100 + Math.random() * 900)}`,
@@ -338,8 +349,10 @@ export class SalariesListComponent implements OnInit {
       telephone: '',
       email: '',
       poste: '',
-      dateEmbauche: new Date().toISOString().slice(0, 10),
-      serviceId: '',
+      dateEmbauche: '',
+      dateNaissance: '',
+      lieuNaissance: '',
+      numeroCnib: '',
       managerId: null,
       actif: true,
     };

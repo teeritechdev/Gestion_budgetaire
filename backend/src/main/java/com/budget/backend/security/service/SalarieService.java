@@ -5,11 +5,9 @@ import com.budget.backend.common.PdfUtils;
 import com.budget.backend.common.CsvUtils;
 import com.budget.backend.security.dto.SalarieRequestDto;
 import com.budget.backend.security.dto.SalarieResponseDto;
-import com.budget.backend.security.dto.ServiceResponseDto;
 import com.budget.backend.security.entity.Salarie;
-import com.budget.backend.security.entity.ServiceOrganisationnel;
+import com.budget.backend.security.repository.AffectationRepository;
 import com.budget.backend.security.repository.SalarieRepository;
-import com.budget.backend.security.repository.ServiceOrganisationnelRepository;
 import com.budget.backend.security.repository.UtilisateurRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -22,29 +20,32 @@ import java.util.UUID;
 @Service
 public class SalarieService {
     private final SalarieRepository salarieRepository;
-    private final ServiceOrganisationnelRepository serviceRepository;
     private final UtilisateurRepository utilisateurRepository;
+    private final AffectationRepository affectationRepository;
+    private final AffectationService affectationService;
 
     public SalarieService(
             SalarieRepository salarieRepository,
-            ServiceOrganisationnelRepository serviceRepository,
-            UtilisateurRepository utilisateurRepository) {
+            UtilisateurRepository utilisateurRepository,
+            AffectationRepository affectationRepository,
+            AffectationService affectationService) {
         this.salarieRepository = salarieRepository;
-        this.serviceRepository = serviceRepository;
         this.utilisateurRepository = utilisateurRepository;
+        this.affectationRepository = affectationRepository;
+        this.affectationService = affectationService;
     }
 
     @Transactional(readOnly = true)
     public List<SalarieResponseDto> lister(UUID serviceId, Boolean actif, String recherche) {
         String terme = recherche == null ? null : recherche.toLowerCase();
         return salarieRepository.findAll().stream()
-                .filter(salarie -> serviceId == null || salarie.getService().getId().equals(serviceId))
+                .filter(salarie -> serviceId == null || affectationService.estAffecteAuService(salarie.getId(), serviceId))
                 .filter(salarie -> actif == null || salarie.getActif().equals(actif))
                 .filter(salarie -> terme == null
                         || salarie.getMatricule().toLowerCase().contains(terme)
                         || salarie.getNom().toLowerCase().contains(terme)
                         || salarie.getPrenom().toLowerCase().contains(terme)
-                        || salarie.getEmail().toLowerCase().contains(terme))
+                        || (salarie.getEmail() != null && salarie.getEmail().toLowerCase().contains(terme)))
                 .map(this::toDto)
                 .toList();
     }
@@ -77,6 +78,8 @@ public class SalarieService {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Ce salarié ne peut pas être supprimé tant qu'un compte utilisateur ou un collaborateur y est rattaché.");
         }
+        // Les affectations appartiennent au dossier du salarié : elles sont supprimées avec lui.
+        affectationRepository.deleteBySalarie_Id(id);
         salarieRepository.delete(salarie);
     }
 
@@ -84,13 +87,35 @@ public class SalarieService {
         boolean matriculeExiste = id == null
                 ? salarieRepository.existsByMatricule(request.matricule().trim())
                 : salarieRepository.existsByMatriculeAndIdNot(request.matricule().trim(), id);
-        boolean emailExiste = id == null
-                ? salarieRepository.existsByEmail(request.email().trim().toLowerCase())
-                : salarieRepository.existsByEmailAndIdNot(request.email().trim().toLowerCase(), id);
+        String email = normaliserEmail(request.email());
+        boolean emailExiste = email != null && (id == null
+                ? salarieRepository.existsByEmail(email)
+                : salarieRepository.existsByEmailAndIdNot(email, id));
         if (matriculeExiste || emailExiste) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Un salarié avec ce matricule ou cette adresse e-mail existe déjà.");
         }
+        String cnib = normaliserCnib(request.numeroCnib());
+        if (cnib != null && (id == null
+                ? salarieRepository.existsByNumeroCnib(cnib)
+                : salarieRepository.existsByNumeroCnibAndIdNot(cnib, id))) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Un salarié avec ce numéro CNIB existe déjà.");
+        }
+    }
+
+    /** Minuscules, sans espaces autour ; null si non renseigné. */
+    private static String normaliserEmail(String email) {
+        return email == null || email.isBlank() ? null : email.trim().toLowerCase(java.util.Locale.ROOT);
+    }
+
+    private static String texte(String valeur) {
+        return valeur == null || valeur.isBlank() ? null : valeur.trim();
+    }
+
+    /** Majuscules, sans espaces ; null si non renseigné. */
+    private static String normaliserCnib(String numeroCnib) {
+        if (numeroCnib == null || numeroCnib.isBlank()) return null;
+        return numeroCnib.replaceAll("\\s", "").toUpperCase(java.util.Locale.ROOT);
     }
 
     private void appliquer(Salarie salarie, SalarieRequestDto request) {
@@ -102,11 +127,17 @@ public class SalarieService {
         salarie.setPrenom(request.prenom().trim());
         salarie.setSexe(request.sexe());
         salarie.setTelephone(request.telephone());
-        salarie.setEmail(request.email().trim().toLowerCase());
-        salarie.setPoste(request.poste());
+        salarie.setEmail(normaliserEmail(request.email()));
+        salarie.setPoste(request.poste().trim());
         salarie.setDateEmbauche(request.dateEmbauche());
-        salarie.setService(serviceRepository.findById(request.serviceId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Service introuvable.")));
+        if (request.dateNaissance() != null && request.dateEmbauche() != null
+                && !request.dateNaissance().isBefore(request.dateEmbauche())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "La date de naissance doit être antérieure à la date d'embauche.");
+        }
+        salarie.setDateNaissance(request.dateNaissance());
+        salarie.setLieuNaissance(texte(request.lieuNaissance()));
+        salarie.setNumeroCnib(normaliserCnib(request.numeroCnib()));
         salarie.setManager(request.managerId() == null ? null : trouverSalarie(request.managerId()));
         salarie.setActif(request.actif());
     }
@@ -119,28 +150,24 @@ public class SalarieService {
     private SalarieResponseDto toDto(Salarie salarie) {
         return new SalarieResponseDto(salarie.getId(), salarie.getMatricule(), salarie.getNom(),
                 salarie.getPrenom(), salarie.getSexe(), salarie.getTelephone(), salarie.getEmail(),
-                salarie.getPoste(), salarie.getDateEmbauche(), toServiceDto(salarie.getService()),
+                salarie.getPoste(), salarie.getDateEmbauche(), salarie.getDateNaissance(), salarie.getLieuNaissance(),
+                salarie.getNumeroCnib(), affectationService.resumeActuelle(salarie),
                 salarie.getManager() == null ? null : salarie.getManager().getId(),
                 salarie.getActif(), salarie.getCreatedAt(), salarie.getUpdatedAt());
-    }
-
-    private ServiceResponseDto toServiceDto(ServiceOrganisationnel service) {
-        return new ServiceResponseDto(service.getId(), service.getCode(), service.getLibelle(),
-                service.getDirection().getId(), service.getDirection().getCode(),
-                service.getDirection().getLibelle(), service.getDirection().codeStructure(),
-                service.getResponsableId(), service.getActif(), service.getCreatedAt(), service.getUpdatedAt());
     }
 
     // --- Exports (liste fournie : lignes affichées à l'écran) ---
     public String exporterEnCsv(List<SalarieResponseDto> salaries) {
         Map<UUID, String> matricules = matriculesParId();
         StringBuilder csv = new StringBuilder(
-                "Matricule;Nom;Prenom;Sexe;Telephone;Email;Poste;Date_Embauche;Code_Service;Matricule_Manager;Actif\n");
+                "Matricule;Nom;Prenom;Sexe;Telephone;Email;Poste;Date_Embauche;Affectation;Matricule_Manager;Actif;"
+                        + "Date_Naissance;Lieu_Naissance;Numero_CNIB\n");
         for (SalarieResponseDto s : salaries) {
             csv.append(CsvUtils.ligne(';', s.matricule(), s.nom(), s.prenom(), s.sexe(), s.telephone(), s.email(),
-                    s.poste(), s.dateEmbauche(), s.service() == null ? null : s.service().code(),
+                    s.poste(), s.dateEmbauche(), s.affectation() == null ? null : s.affectation().chemin(),
                     s.managerId() == null ? null : matricules.get(s.managerId()),
-                    Boolean.TRUE.equals(s.actif()) ? "oui" : "non"));
+                    Boolean.TRUE.equals(s.actif()) ? "oui" : "non",
+                    s.dateNaissance(), s.lieuNaissance(), s.numeroCnib()));
         }
         return csv.toString();
     }
@@ -148,11 +175,20 @@ public class SalarieService {
     public byte[] exporterEnPdf(List<SalarieResponseDto> salaries) {
         Map<UUID, String> matricules = matriculesParId();
         return PdfUtils.tableau("Liste des salariés",
-                List.of("Matricule", "Nom et prénom", "E-mail", "Poste", "Service", "Embauche", "Manager", "Statut"),
+                List.of("Matricule", "Nom et prénom", "N° CNIB", "Naissance", "E-mail", "Poste", "Affectation", "Embauche", "Manager", "Statut"),
                 salaries.stream().map(s -> java.util.Arrays.<Object>asList(s.matricule(), s.nom() + " " + s.prenom(),
-                        s.email(), s.poste(), s.service() == null ? "" : s.service().libelle(), s.dateEmbauche(),
+                        s.numeroCnib(), naissance(s),
+                        s.email(), s.poste(), s.affectation() == null ? "" : s.affectation().cibleLibelle(), s.dateEmbauche(),
                         s.managerId() == null ? "" : matricules.getOrDefault(s.managerId(), ""),
                         Boolean.TRUE.equals(s.actif()) ? "Actif" : "Inactif")).toList());
+    }
+
+    /** « 12/03/1990 à Ouagadougou » (parties connues uniquement). */
+    private static String naissance(SalarieResponseDto s) {
+        String date = s.dateNaissance() == null ? ""
+                : s.dateNaissance().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+        String lieu = s.lieuNaissance() == null ? "" : s.lieuNaissance();
+        return date.isEmpty() || lieu.isEmpty() ? date + lieu : date + " à " + lieu;
     }
 
     private Map<UUID, String> matriculesParId() {

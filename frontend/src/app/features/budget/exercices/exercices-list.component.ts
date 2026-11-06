@@ -4,11 +4,12 @@ import { ImportCsvPageComponent } from '../../../shared/components/import-csv-pa
 import { DataActionsComponent } from '../../../shared/components/data-actions.component';
 import { FormPageComponent } from '../../../shared/components/form-page.component';
 import { RecordDetailsDialogComponent } from '../../../shared/components/record-details-dialog.component';
-import { NativeDatePickerDirective } from '../../../shared/directives/native-date-picker.directive';
+import { DatePickerComponent } from '../../../shared/components/date-picker.component';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormsModule } from '@angular/forms';
+import { SearchOptionDirective, SearchSelectComponent } from '../../../shared/components/search-select.component';
 import { BudgetService } from '../../../core/services/budget.service';
 import { NotificationService } from '../../../core/services/notification.service';
 import { AuthService } from '../../../core/services/auth.service';
@@ -21,9 +22,9 @@ import {
 @Component({
   selector: 'app-exercices-list',
   standalone: true,
-  imports: [PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, 
+  imports: [SearchSelectComponent, SearchOptionDirective, PageHeaderComponent, DataActionsComponent, ImportCsvPageComponent, FormPageComponent, 
     RecordDetailsDialogComponent,
-    NativeDatePickerDirective,
+    DatePickerComponent,
     CommonModule,
     FormsModule,
   ],
@@ -49,7 +50,7 @@ import {
           }
           <div class="grid gap-4 sm:grid-cols-2">
             <label class="space-y-1.5 text-xs text-slate-600"
-              >Année<input
+              >Année <span class="champ-obligatoire" aria-hidden="true">*</span><input
                 required
                 type="number"
                 min="2000"
@@ -68,24 +69,24 @@ import {
                 <option value="CLOTURE">Clôturé</option>
               </select></label
             ><label class="space-y-1.5 text-xs text-slate-600 sm:col-span-2"
-              >Plan budgétaire<select
+              >Plan budgétaire <span class="champ-obligatoire" aria-hidden="true">*</span><app-search-select
                 required
                 [(ngModel)]="form.planId"
                 name="planId"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+                placeholder="Sélectionner un plan"
+                triggerClass="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
               >
-                <option value="">Sélectionner un plan</option>
                 @for (plan of plans(); track plan.id) {
-                  <option [value]="plan.id">{{ plan.codePlan }} — {{ plan.libelle }}</option>
+                  <app-search-option [value]="plan.id" [label]="plan.codePlan + ' — ' + plan.libelle" />
                 }
-              </select>
+              </app-search-select>
               @if (!plans().length) {
                 <span class="mt-1 block text-[10px] text-amber-300"
                   >Créez d’abord un plan budgétaire.</span
                 >
               }</label
             ><label class="space-y-1.5 text-xs text-slate-600 sm:col-span-2"
-              >Montant total voté (FCFA)<input
+              >Montant total voté (FCFA) <span class="champ-obligatoire" aria-hidden="true">*</span><input
                 required
                 type="number"
                 min="0"
@@ -94,18 +95,14 @@ import {
                 name="montantTotalVote"
                 class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" /></label
             ><label class="space-y-1.5 text-xs text-slate-600"
-              >Date d’ouverture<input
-                type="date"
+              >Date d’ouverture<app-date-picker
                 [(ngModel)]="form.dateOuverture"
-                name="dateOuverture"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500" /></label
+                name="dateOuverture" /></label
             ><label class="space-y-1.5 text-xs text-slate-600"
-              >Date de fermeture<input
-                type="date"
+              >Date de fermeture<app-date-picker
                 [min]="form.dateOuverture || undefined"
                 [(ngModel)]="form.dateFermeture"
                 name="dateFermeture"
-                class="w-full rounded-lg border border-slate-300 bg-slate-50 px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
             /></label>
           </div>
           <div class="form-page-actions">
@@ -130,7 +127,7 @@ import {
 } @else {
     <div class="mx-auto max-w-7xl space-y-6">
       <app-page-header icon="exercices" module="Gestion budgétaire" title="Exercices budgétaires" description="Ouvrez, suivez et clôturez chaque année budgétaire avec son enveloppe votée.">
-<app-data-actions ressource="exercices-budgetaires" exportPermission="exercice.exporter" [ids]="exportIds()" [importPermissions]="['exercice.importer']" (importer)="importOpen.set(true)" />
+<app-data-actions ressource="exercices-budgetaires" exportPermission="exercice.exporter" [ids]="exportIds()" [importPermissions]="['exercice.importer']" [importFormat]="importFormats.exercices" (importer)="importOpen.set(true)" />
           @if (canCreate()) {
             <button
               (click)="openCreate()"

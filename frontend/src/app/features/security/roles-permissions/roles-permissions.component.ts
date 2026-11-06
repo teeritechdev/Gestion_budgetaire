@@ -32,23 +32,22 @@ import { Permission } from '../../../core/models/permission.model';
             <div class="flex-1 overflow-y-auto space-y-4 pr-1">
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <label class="block text-xs font-medium text-slate-700 mb-1">Code Rôle (Unique) *</label>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">Code Rôle (Unique) <span class="champ-obligatoire" aria-hidden="true">*</span></label>
                   <input
                     type="text"
                     required
                     [disabled]="isEditingRole()"
                     [(ngModel)]="roleFormData.code"
-                    placeholder="CHEF_DEPARTEMENT"
                     class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-white uppercase disabled:opacity-60"
                   />
+                  <p class="mt-1 text-[11px] text-slate-500">Majuscules et tirets bas, ex. CHEF_DEPARTEMENT.</p>
                 </div>
                 <div>
-                  <label class="block text-xs font-medium text-slate-700 mb-1">Libellé du Rôle *</label>
+                  <label class="block text-xs font-medium text-slate-700 mb-1">Libellé du Rôle <span class="champ-obligatoire" aria-hidden="true">*</span></label>
                   <input
                     type="text"
                     required
                     [(ngModel)]="roleFormData.libelle"
-                    placeholder="Chef de Département"
                     class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-white"
                   />
                 </div>
@@ -59,9 +58,9 @@ import { Permission } from '../../../core/models/permission.model';
                 <textarea
                   rows="2"
                   [(ngModel)]="roleFormData.description"
-                  placeholder="Responsabilités et périmètre d'action..."
                   class="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-white"
                 ></textarea>
+                <p class="mt-1 text-[11px] text-slate-500">Responsabilités et périmètre d’action du rôle.</p>
               </div>
 
               <!-- Interactive Permissions Matrix -->
@@ -149,7 +148,7 @@ import { Permission } from '../../../core/models/permission.model';
 } @else {
     <div class="space-y-6 max-w-7xl mx-auto">
       <app-page-header icon="roles" module="Administration" title="Rôles & permissions" description="Définissez qui peut faire quoi, avec des droits précis et maîtrisés.">
-<app-data-actions [ressource]="activeTab() === 'roles' ? 'roles' : 'permissions'" [exportPermission]="activeTab() === 'roles' ? 'role.exporter' : 'permission.exporter'" [ids]="exportIds()" [importPermissions]="[activeTab() === 'roles' ? 'role.importer' : 'permission.importer']" (importer)="importOpen.set(true)" />
+<app-data-actions [ressource]="activeTab() === 'roles' ? 'roles' : 'permissions'" [exportPermission]="activeTab() === 'roles' ? 'role.exporter' : 'permission.exporter'" [ids]="exportIds()" [importPermissions]="[activeTab() === 'roles' ? 'role.importer' : 'permission.importer']" [importFormat]="activeTab() === 'roles' ? importFormats.roles : importFormats.permissions" (importer)="importOpen.set(true)" />
 
           @if (activeTab() === 'roles' && auth.hasPermission('role.creer')) {
             <button

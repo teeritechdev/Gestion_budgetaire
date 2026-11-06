@@ -33,6 +33,10 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 401) {
         notify.error('Votre session a expiré. Veuillez vous reconnecter.', 'Session expirée');
         authService.logout();
+      } else if (error.status === 403 && error.error?.code === 'MOT_DE_PASSE_A_CHANGER') {
+        // Mot de passe temporaire : le backend n'autorise que le profil tant qu'il n'est pas changé.
+        authService.mettreAJourSession({ doitChangerMotDePasse: true });
+        router.navigate(['/profil'], { queryParams: { onglet: 'securite' } });
       } else if (error.status === 403) {
         notify.warning('Vous n\'avez pas les permissions requises pour cette action.', 'Accès refusé');
       }

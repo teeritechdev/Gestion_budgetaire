@@ -5,6 +5,7 @@ import com.budget.backend.common.CsvUtils;
 import com.budget.backend.security.entity.Structure;
 import com.budget.backend.security.repository.StructureRepository;
 import com.budget.backend.security.repository.DirectionRepository;
+import com.budget.backend.security.repository.AffectationRepository;
 import com.budget.backend.security.repository.UniteOrganisationnelleRepository;
 import com.budget.backend.budget.repository.BudgetAllocationStructureRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -44,6 +45,9 @@ public class StructureService {
 
     @Autowired
     private AuditService auditService;
+
+    @Autowired
+    private AffectationRepository affectationRepository;
 
     // --- CRUD : Lecture ---
     public List<Structure> listerToutesLesStructures() {
@@ -119,7 +123,6 @@ public class StructureService {
         existante.setFormeJuridique(nouvellesDonnees.getFormeJuridique());
         existante.setNumeroFiscal(nouvellesDonnees.getNumeroFiscal());
         existante.setSiteWeb(nouvellesDonnees.getSiteWeb());
-        existante.setLogo(nouvellesDonnees.getLogo());
         Structure updated = structureRepository.save(existante);
 
         // Audit
@@ -144,10 +147,11 @@ public class StructureService {
 
         if (directionRepository.existsByStructure_Code(code)
                 || !uniteOrganisationnelleRepository.findByStructureCode(code).isEmpty()
-                || allocationRepository.existsByStructure_Code(code)) {
+                || allocationRepository.existsByStructure_Code(code)
+                || affectationRepository.existsByStructure_Code(code)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "Cette Structure ne peut pas être supprimée tant que des directions, unités historiques ou allocations y sont rattachées.");
+                    "Cette Structure ne peut pas être supprimée tant que des directions, unités historiques, allocations ou salariés y sont rattachés.");
         }
 
         structureRepository.delete(structure);
@@ -172,11 +176,11 @@ public class StructureService {
 
     /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
     public String exporterEnCsv(List<Structure> structures) {
-        StringBuilder csv = new StringBuilder("Code;Nom;Telephone;Adresse;Email;Ville;Pays;Sigle;Secteur_Activite;Forme_Juridique;Numero_Fiscal;Site_Web;Logo;Date_Creation\n");
+        StringBuilder csv = new StringBuilder("Code;Nom;Telephone;Adresse;Email;Ville;Pays;Sigle;Secteur_Activite;Forme_Juridique;Numero_Fiscal;Site_Web;Date_Creation\n");
         for (Structure e : structures) {
             csv.append(CsvUtils.ligne(';', e.getCode(), e.getNom(), e.getTelephone(), e.getAdresse(),
                     e.getEmail(), e.getVille(), e.getPays(), e.getSigle(), e.getSecteurActivite(),
-                    e.getFormeJuridique(), e.getNumeroFiscal(), e.getSiteWeb(), e.getLogo(), e.getCreatedAt()));
+                    e.getFormeJuridique(), e.getNumeroFiscal(), e.getSiteWeb(), e.getCreatedAt()));
         }
         return csv.toString();
     }
@@ -204,7 +208,6 @@ public class StructureService {
                     .formeJuridique(ligne.texte("forme_juridique"))
                     .numeroFiscal(ligne.texte("numero_fiscal"))
                     .siteWeb(ligne.texte("site_web"))
-                    .logo(ligne.texte("logo"))
                     .build());
             crees[0]++;
         });

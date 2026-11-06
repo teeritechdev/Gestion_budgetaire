@@ -13,6 +13,7 @@ export const FEATURE_ACCESS = {
   '/budget/journal-mouvements': ['journal.lire'],
   '/budget/exercices': ['exercice.lire'],
   '/security/salaries': ['salarie.lire'],
+  '/security/affectations': ['affectation.lire'],
   '/security/utilisateurs': ['utilisateur.lire'],
   '/security/roles-permissions': ['role.lire', 'permission.lire'],
   '/security/structures': ['entite.lire'],

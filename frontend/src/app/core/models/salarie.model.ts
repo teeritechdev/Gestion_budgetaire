@@ -1,4 +1,4 @@
-import { ServiceOrganisationnel } from './service-organisationnel.model';
+import { AffectationResume } from './affectation.model';
 
 export type SexeSalarie = 'FEMME' | 'HOMME' | 'AUTRE' | 'NON_RENSEIGNE';
 
@@ -9,10 +9,15 @@ export interface Salarie {
   prenom: string;
   sexe: SexeSalarie;
   telephone?: string | null;
-  email: string;
+  email?: string | null;
   poste?: string | null;
-  dateEmbauche: string;
-  service: ServiceOrganisationnel;
+  dateEmbauche?: string | null;
+  dateNaissance?: string | null;
+  lieuNaissance?: string | null;
+  /** Carte nationale d'identité burkinabè : B suivi de chiffres, ex. B12345678. */
+  numeroCnib?: string | null;
+  /** Affectation en cours la plus récente (gérée dans l'onglet Affectations). */
+  affectation: AffectationResume | null;
   managerId?: string | null;
   actif: boolean;
   createdAt?: string;
@@ -25,10 +30,12 @@ export interface SalarieRequest {
   prenom: string;
   sexe: SexeSalarie;
   telephone?: string | null;
-  email: string;
+  email?: string | null;
   poste?: string | null;
-  dateEmbauche: string;
-  serviceId: string;
+  dateEmbauche?: string | null;
+  dateNaissance?: string | null;
+  lieuNaissance?: string | null;
+  numeroCnib?: string | null;
   managerId?: string | null;
   actif: boolean;
 }

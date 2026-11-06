@@ -18,7 +18,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -40,42 +39,36 @@ class DirectionServiceTest {
     private DirectionService service;
 
     @Test
-    void uneDirectionCspEstTransversaleSansStructure() {
+    void rattacheUneDirectionAUneStructure() {
+        when(structureRepository.findById("UAB_VIE"))
+                .thenReturn(Optional.of(Structure.builder().code("UAB_VIE").nom("UAB Vie").build()));
         when(directionRepository.save(any(Direction.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-        DirectionResponseDto cree = service.creer(new DirectionRequestDto("DIR-SI", "Systèmes d'information", null, true, true));
+        DirectionResponseDto cree = service.creer(new DirectionRequestDto(
+                "DIR-SI", "Systèmes d'information", " UAB_VIE ", true));
 
-        assertTrue(cree.estCsp());
-        assertNull(cree.structureCode());
-        verify(structureRepository, never()).findById(any());
+        assertEquals("UAB_VIE", cree.structureCode());
+        assertEquals("UAB Vie", cree.structureNom());
     }
 
     @Test
-    void refuseDeRattacherUneDirectionCspAUneStructure() {
+    void exigeUneStructure() {
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.creer(new DirectionRequestDto("DIR-SI", "Systèmes d'information", "UAB_VIE", true, true)));
+                () -> service.creer(new DirectionRequestDto("DIR-FIN", "Direction financière", " ", true)));
 
         assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
         verify(directionRepository, never()).save(any());
     }
 
     @Test
-    void exigeUneStructurePourUneDirectionClassique() {
+    void refuseUneStructureInconnue() {
+        when(structureRepository.findById("INCONNUE")).thenReturn(Optional.empty());
+
         ResponseStatusException exception = assertThrows(ResponseStatusException.class,
-                () -> service.creer(new DirectionRequestDto("DIR-FIN", "Direction financière", " ", true, false)));
+                () -> service.creer(new DirectionRequestDto("DIR-FIN", "Direction financière", "INCONNUE", true)));
 
-        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
-    }
-
-    @Test
-    void rattacheUneDirectionClassiqueASaStructure() {
-        when(structureRepository.findById("UAB_VIE"))
-                .thenReturn(Optional.of(Structure.builder().code("UAB_VIE").nom("UAB Vie").build()));
-        when(directionRepository.save(any(Direction.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-        DirectionResponseDto cree = service.creer(new DirectionRequestDto("DIR-FIN", "Direction financière", "UAB_VIE", true, null));
-
-        assertEquals("UAB_VIE", cree.structureCode());
-        assertEquals(Boolean.FALSE, cree.estCsp());
+        assertEquals(HttpStatus.NOT_FOUND, exception.getStatusCode());
+        assertTrue(exception.getReason().contains("INCONNUE"));
+        verify(directionRepository, never()).save(any());
     }
 }

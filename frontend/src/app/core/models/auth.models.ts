@@ -13,6 +13,9 @@ export interface JwtResponse {
   prenom: string;
   role: string;
   permissions: string[];
+  /** Mot de passe temporaire (défini par un administrateur) : à changer avant toute autre action. */
+  doitChangerMotDePasse?: boolean;
+  avecPhoto?: boolean;
 }
 
 export interface CurrentUser {
@@ -24,4 +27,6 @@ export interface CurrentUser {
   role: string;
   permissions: string[];
   token: string;
+  doitChangerMotDePasse?: boolean;
+  avecPhoto?: boolean;
 }

@@ -18,7 +18,7 @@ public record UtilisateurResponseDto(
         String email,
         String poste,
         LocalDate dateEmbauche,
-        ServiceResponseDto service,
+        AffectationResumeDto affectation,
         UUID managerId,
         Role role,
         Boolean actif,
