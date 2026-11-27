@@ -27,7 +27,7 @@ spring:
 # Configuration JWT
 jwt:
   secret: 404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970
-  expiration: 86400000 # 24h
+  expiration: 604800000 # 7 jours (évite les déconnexions intempestives lors des démonstrations et présentations)
 
 # Journal d'audit : proxies dont les en-têtes X-Forwarded-For / X-Real-IP sont pris en compte.
 # Vide = en-têtes ignorés (le front appelle le backend directement). Si l'application est publiée

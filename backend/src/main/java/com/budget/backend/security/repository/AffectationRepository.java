@@ -9,6 +9,10 @@ import java.util.UUID;
 public interface AffectationRepository extends JpaRepository<Affectation, UUID> {
     List<Affectation> findBySalarie_Id(UUID salarieId);
 
+    List<Affectation> findByService_Id(UUID serviceId);
+
+    List<Affectation> findByDirection_Id(UUID directionId);
+
     boolean existsByStructure_Code(String structureCode);
 
     boolean existsByDirection_Id(UUID directionId);

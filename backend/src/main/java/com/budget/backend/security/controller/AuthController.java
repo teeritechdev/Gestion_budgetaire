@@ -66,6 +66,9 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
         String username = loginRequest.getUsername();
+        if (username != null && ("admin".equalsIgnoreCase(username.trim()) || "administrateur".equalsIgnoreCase(username.trim()))) {
+            username = "admin@uab.bf";
+        }
         if (loginAttemptService.estBloque(username)) {
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS,
                     "Trop de tentatives de connexion échouées. Réessayez dans quelques minutes.");

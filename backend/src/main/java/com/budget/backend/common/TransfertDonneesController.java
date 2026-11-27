@@ -50,6 +50,10 @@ import com.budget.backend.security.service.SalarieService;
 import com.budget.backend.security.service.ServiceOrganisationnelService;
 import com.budget.backend.security.service.StructureService;
 import com.budget.backend.security.service.UtilisateurService;
+import com.budget.backend.stock.entity.Article;
+import com.budget.backend.stock.repository.ArticleRepository;
+import com.budget.backend.stock.service.ArticleImportService;
+import com.budget.backend.stock.service.ArticleService;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -138,7 +142,9 @@ public class TransfertDonneesController {
             AffectationService affectationService,
             RoleService roleService, RoleRepository roleRepository,
             PermissionService permissionService, PermissionRepository permissionRepository,
-            OrganisationImportService organisationImportService) {
+            OrganisationImportService organisationImportService,
+            ArticleService articleService, ArticleRepository articleRepository,
+            ArticleImportService articleImportService) {
         this.permissionEvaluator = permissionEvaluator;
         this.auditService = auditService;
         this.utilisateurRepository = utilisateurRepository;
@@ -216,8 +222,12 @@ public class TransfertDonneesController {
         exports.put("permissions", new Export("permission.exporter", "permissions",
                 (ids, a) -> permissionService.exporterEnCsv(ordonner(uuids(ids), permissionRepository.findAllById(uuids(ids)), p -> p.getId())),
                 (ids, a) -> permissionService.exporterEnPdf(ordonner(uuids(ids), permissionRepository.findAllById(uuids(ids)), p -> p.getId()))));
+        exports.put("articles", new Export("article.lire", "articles",
+                (ids, a) -> articleService.exporterEnCsv(ids.isEmpty() ? articleService.listerTous(null) : ordonner(uuids(ids), articleRepository.findAllById(uuids(ids)), Article::getId)),
+                (ids, a) -> articleService.exporterEnCsv(ids.isEmpty() ? articleService.listerTous(null) : ordonner(uuids(ids), articleRepository.findAllById(uuids(ids)), Article::getId)).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
 
         // --- Imports ---
+        imports.put("articles", new Import(List.of("article.creer"), (f, a) -> articleImportService.importerArticles(f)));
         imports.put("plans-strategiques", new Import(List.of("plan.importer"), (f, a) -> budgetImportService.importerPlans(f)));
         imports.put("nomenclature", new Import(List.of("os.importer", "op.importer", "activite.importer"),
                 (f, a) -> budgetImportService.importerNomenclature(f)));

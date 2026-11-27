@@ -25,7 +25,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Override
     @Transactional
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
-        Utilisateur utilisateur = utilisateurRepository.findByUsername(username)
+        String trimmed = username != null ? username.trim() : "";
+        final String searchUser = ("admin".equalsIgnoreCase(trimmed) || "administrateur".equalsIgnoreCase(trimmed))
+                ? "admin@uab.bf"
+                : trimmed;
+        Utilisateur utilisateur = utilisateurRepository.findByUsername(searchUser)
+                .or(() -> utilisateurRepository.findByUsernameIgnoreCase(searchUser))
                 .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec le nom : " + username));
 
         if (!Boolean.TRUE.equals(utilisateur.getActif())

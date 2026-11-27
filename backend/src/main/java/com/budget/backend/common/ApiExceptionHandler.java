@@ -83,6 +83,19 @@ public class ApiExceptionHandler {
         return corps(HttpStatus.BAD_REQUEST, exception.getMessage());
     }
 
+    @ExceptionHandler({
+            com.budget.backend.stock.StockException.class,
+            com.budget.backend.achat.AchatException.class,
+            com.budget.backend.workflow.WorkflowException.class
+    })
+    public ResponseEntity<Map<String, Object>> gererExceptionsMetierModules(RuntimeException exception) {
+        log.warn("Règle métier non satisfaite : {}", exception.getMessage());
+        HttpStatus status = exception.getMessage() != null && exception.getMessage().toLowerCase().contains("introuvable")
+                ? HttpStatus.NOT_FOUND
+                : HttpStatus.BAD_REQUEST;
+        return corps(status, exception.getMessage());
+    }
+
     /**
      * Les services historiques lèvent des RuntimeException avec un message métier
      * (« introuvable », « dépasse l'enveloppe »...). On les renvoie en 400/404
@@ -91,14 +104,18 @@ public class ApiExceptionHandler {
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<Map<String, Object>> gererMetier(RuntimeException exception) {
         String message = exception.getMessage();
-        if (message == null || message.isBlank()
-                || exception.getClass() != RuntimeException.class
-                || exception.getCause() != null) {
-            log.error("Erreur interne non gérée", exception);
-            return corps(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur interne est survenue.");
+        if (message != null && !message.isBlank()) {
+            HttpStatus status = message.toLowerCase().contains("introuvable") ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
+            return corps(status, message);
         }
-        HttpStatus status = message.toLowerCase().contains("introuvable") ? HttpStatus.NOT_FOUND : HttpStatus.BAD_REQUEST;
-        return corps(status, message);
+        log.error("Erreur interne non gérée", exception);
+        return corps(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur interne est survenue.");
+    }
+
+    @ExceptionHandler(Throwable.class)
+    public ResponseEntity<Map<String, Object>> gererErreurInattendue(Throwable throwable) {
+        log.error("Erreur inattendue serveur", throwable);
+        return corps(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur interne du serveur : " + throwable.getMessage());
     }
 
     private ResponseEntity<Map<String, Object>> corps(HttpStatus status, String message) {
