@@ -124,16 +124,16 @@ import {
 </app-page-header>
       <section class="stats-grid grid gap-4 sm:grid-cols-3">
         <div class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="text-xs text-slate-600">Plans enregistrés</p>
-          <p class="mt-2 text-2xl font-bold text-white">{{ plans().length }}</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Plans enregistrés</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-slate-900">{{ plans().length }}</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="text-xs text-slate-600">Plans actifs</p>
-          <p class="mt-2 text-2xl font-bold text-blue-300">{{ plansActifs() }}</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Plans actifs</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-blue-700">{{ plansActifs() }}</p>
         </div>
         <div class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="text-xs text-slate-600">Période couverte</p>
-          <p class="mt-2 text-2xl font-bold text-white">{{ periodeCouverte() }}</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Période couverte</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-slate-900">{{ periodeCouverte() }}</p>
         </div>
       </section>
       <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">

@@ -152,9 +152,38 @@ const FILTRE = 'bg-slate-50 border border-slate-200 rounded-xl text-xs text-slat
 
     <!-- Statistiques communes aux trois sous-onglets -->
     <section class="stats-grid grid gap-3 sm:grid-cols-3">
-      <article class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4"><span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-lg text-blue-300"><app-icon name="objectifStrategique" classe="h-6 w-6" /></span><div><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Objectifs stratégiques</p><p class="mt-1 text-2xl font-bold text-white">{{ osList().length }}</p></div><span class="ml-auto text-[10px] text-slate-500">Niveau 1</span></article>
-      <article class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4"><span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-lg text-blue-300"><app-icon name="objectifOperationnel" classe="h-6 w-6" /></span><div><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Objectifs opérationnels</p><p class="mt-1 text-2xl font-bold text-white">{{ opList().length }}</p></div><span class="ml-auto text-[10px] text-slate-500">Niveau 2</span></article>
-      <article class="flex items-center gap-4 rounded-2xl border border-slate-200 bg-white p-4"><span class="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/10 text-lg text-blue-300"><app-icon name="activite" classe="h-6 w-6" /></span><div><p class="text-[10px] font-semibold uppercase tracking-wider text-slate-500">Activités catalogue</p><p class="mt-1 text-2xl font-bold text-white">{{ activiteList().length }}</p></div><span class="ml-auto text-[10px] text-slate-500">Niveau 3</span></article>
+      <article class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="flex items-center justify-between">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            <app-icon name="objectifStrategique" classe="h-5 w-5" />
+          </span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">Niveau 1</span>
+        </div>
+        <p class="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Objectifs stratégiques</p>
+        <p class="mt-1 text-2xl font-bold font-mono text-slate-900">{{ osList().length }}</p>
+      </article>
+
+      <article class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="flex items-center justify-between">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            <app-icon name="objectifOperationnel" classe="h-5 w-5" />
+          </span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">Niveau 2</span>
+        </div>
+        <p class="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Objectifs opérationnels</p>
+        <p class="mt-1 text-2xl font-bold font-mono text-slate-900">{{ opList().length }}</p>
+      </article>
+
+      <article class="rounded-2xl border border-slate-200 bg-white p-4">
+        <div class="flex items-center justify-between">
+          <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
+            <app-icon name="activite" classe="h-5 w-5" />
+          </span>
+          <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-medium text-slate-500">Niveau 3</span>
+        </div>
+        <p class="mt-3 text-[10px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Activités catalogue</p>
+        <p class="mt-1 text-2xl font-bold font-mono text-slate-900">{{ activiteList().length }}</p>
+      </article>
     </section>
 
     @if (error()) {

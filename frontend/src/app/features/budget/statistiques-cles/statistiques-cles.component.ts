@@ -140,16 +140,16 @@ import {
       }
       <section class="stats-grid grid gap-3 sm:grid-cols-3">
         <article class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="text-[10px] uppercase tracking-wider text-slate-500">Mesures enregistrées</p>
-          <p class="mt-2 text-2xl font-bold text-white">{{ entries().length }}</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Mesures enregistrées</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-slate-900">{{ entries().length }}</p>
         </article>
         <article class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="text-[10px] uppercase tracking-wider text-slate-500">Entités suivies</p>
-          <p class="mt-2 text-2xl font-bold text-blue-200">{{ entityCount() }}</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Entités suivies</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-blue-700">{{ entityCount() }}</p>
         </article>
         <article class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="text-[10px] uppercase tracking-wider text-slate-500">Effectif consolidé</p>
-          <p class="mt-2 text-2xl font-bold text-white">{{ totalStaff() | number: '1.0-0' }}</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Effectif consolidé</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-slate-900">{{ totalStaff() | number: '1.0-0' }}</p>
         </article>
       </section>
       <section class="overflow-hidden rounded-2xl border border-slate-200 bg-white">

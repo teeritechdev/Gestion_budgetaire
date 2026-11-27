@@ -137,6 +137,30 @@ a:focus-visible {
   box-shadow: inset 0 3px 0 #15803d, 0 1px 2px rgb(16 40 70 / 5%), 0 4px 14px rgb(16 40 70 / 5%) !important;
 }
 
+/* Titres des groupes de navigation latérale et des cartes : toujours droits sur une ligne */
+aside nav p.uppercase {
+  white-space: nowrap !important;
+}
+
+.stats-grid article p,
+.stats-grid div p {
+  white-space: nowrap !important;
+}
+
+/* Tableaux : en-têtes et libellés toujours droits sur une ligne sans retour */
+table thead th {
+  white-space: nowrap !important;
+}
+
+table td .rounded-full,
+table td .font-mono {
+  white-space: nowrap !important;
+}
+
+table tbody td {
+  vertical-align: middle;
+}
+
 .app-header {
   background-color: #15803d !important;
   border-bottom-color: #14532d !important;
@@ -151,22 +175,26 @@ a:focus-visible {
   border-color: rgb(255 255 255 / 35%) !important;
 }
 
-a.router-link-active {
+/* Seul l'élément de menu actuellement actif est affiché en vert foncé plein */
+aside nav a.bg-green-700 {
   color: #fff !important;
   background-color: #15803d !important;
 }
 
-a.router-link-active span {
+aside nav a.bg-green-700 span,
+aside nav a.bg-green-700 .sidebar-nav-icon {
   color: #fff !important;
 }
 
-aside nav a:hover {
-  background-color: #15803d !important;
-  color: #fff !important;
+/* Au survol d'un élément non sélectionné : fond vert menthe très doux, pas de confusion avec la page active */
+aside nav a:hover:not(.bg-green-700) {
+  background-color: #dcfce7 !important;
+  color: #14532d !important;
 }
 
-aside nav a:hover span {
-  color: #fff !important;
+aside nav a:hover:not(.bg-green-700) span,
+aside nav a:hover:not(.bg-green-700) .sidebar-nav-icon {
+  color: #15803d !important;
 }
 
 .action-toolbar {
@@ -976,6 +1004,8 @@ aside nav a:hover .sidebar-nav-icon {
 .teinte-sarcelle { background-color: #ccfbf1; color: #0f766e !important; }
 .teinte-indigo { background-color: #e0e7ff; color: #4338ca !important; }
 .teinte-ardoise { background-color: #e2e8f0; color: #334155 !important; }
+.teinte-rose { background-color: #ffe4e6; color: #be123c !important; }
+.teinte-rouge { background-color: #fee2e2; color: #b91c1c !important; }
 
 @media (prefers-reduced-motion: reduce) {
   .carte-indicateur,

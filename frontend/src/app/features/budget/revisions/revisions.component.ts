@@ -237,16 +237,16 @@ interface RevisionLineForm {
       }
       <section class="stats-grid grid gap-3 sm:grid-cols-3">
         <article class="rounded-2xl border border-slate-200 bg-white p-4">
-          <p class="text-[10px] uppercase tracking-wider text-slate-500">Demandes enregistrées</p>
-          <p class="mt-2 text-2xl font-bold text-white">{{ demands().length }}</p>
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Demandes enregistrées</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-slate-900">{{ demands().length }}</p>
         </article>
-        <article class="rounded-2xl border border-amber-500/15 bg-white p-4">
-          <p class="text-[10px] uppercase tracking-wider text-slate-500">À valider</p>
-          <p class="mt-2 text-2xl font-bold text-amber-200">{{ pendingCount() }}</p>
+        <article class="rounded-2xl border border-slate-200 bg-white p-4">
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">À valider</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-amber-500">{{ pendingCount() }}</p>
         </article>
-        <article class="rounded-2xl border border-blue-500/15 bg-white p-4">
-          <p class="text-[10px] uppercase tracking-wider text-slate-500">Validées</p>
-          <p class="mt-2 text-2xl font-bold text-blue-200">{{ validatedCount() }}</p>
+        <article class="rounded-2xl border border-slate-200 bg-white p-4">
+          <p class="text-[10px] uppercase tracking-wider text-slate-500 font-semibold whitespace-nowrap">Validées</p>
+          <p class="mt-2 text-2xl font-bold font-mono text-blue-600">{{ validatedCount() }}</p>
         </article>
       </section>
       <section class="grid items-start gap-5 xl:grid-cols-[.9fr_1.1fr]">

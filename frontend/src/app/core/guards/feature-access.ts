@@ -20,6 +20,17 @@ export const FEATURE_ACCESS = {
   '/security/directions': ['direction.lire'],
   '/security/services': ['service.lire'],
   '/security/audit-logs': ['audit.lire'],
+  '/stock/articles': ['article.lire'],
+  '/stock/demandes-magasin': ['demande_magasin.lire'],
+  '/stock/mouvements': ['mouvement_stock.lire'],
+  '/achats/fournisseurs': ['fournisseur.lire'],
+  '/achats/demandes-achat': ['demande_achat.lire'],
+  '/achats/bons-commande': ['bon_commande.lire'],
+  '/achats/abonnements': ['abonnement.lire'],
+  '/abonnements': ['abonnement.lire'],
+  '/abonnements/echeancier': ['abonnement.lire'],
+  '/workflows/definitions': ['workflow.lire'],
+  '/workflows/instances': ['workflow.lire'],
 } as const satisfies Record<string, readonly string[]>;
 
 export type FeaturePath = keyof typeof FEATURE_ACCESS;

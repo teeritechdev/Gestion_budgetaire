@@ -10,6 +10,43 @@ export interface FormatImport {
 
 /** Formats des imports CSV, alignés sur les colonnes lues par le backend (et produites par les exports). */
 export const IMPORT_FORMATS = {
+  fournisseurs: {
+    titre: 'Importer des fournisseurs',
+    description: 'Enregistrement en masse des prestataires et vendeurs dans le référentiel tiers.',
+    nomModele: 'modele_fournisseurs.csv',
+    colonnes: [
+      { nom: 'code_fournisseur', aide: 'Code unique (ex. FOURN-2026-0001, généré automatiquement si vide).' },
+      { nom: 'raison_sociale', obligatoire: true, aide: 'Dénomination sociale du fournisseur.' },
+      { nom: 'ifu', obligatoire: true, aide: 'Identifiant Fiscal Unique (IFU) obligatoire.' },
+      { nom: 'email', aide: 'Adresse e-mail professionnelle.' },
+      { nom: 'telephone', aide: 'Téléphone de contact.' },
+      { nom: 'adresse', aide: 'Adresse physique ou postale.' },
+      { nom: 'actif', aide: 'oui / non (oui par défaut).' },
+    ],
+    exemples: [
+      ['FOURN-2026-0001', 'CFAO MOTORS BURKINA FASO', '00012345A', 'contact@cfao.bf', '+226 25 30 00 00', 'Avenue de la Nation, Ouagadougou', 'oui'],
+      ['FOURN-2026-0002', 'LIBRAIRIE DE LA PAIX', '00023456B', 'librairie.paix@fasonet.bf', '+226 25 31 11 11', 'Quartier Koulouba, Ouagadougou', 'oui'],
+    ],
+  },
+  articles: {
+    titre: 'Importer des articles',
+    description: 'Création ou mise à jour en masse d’articles du catalogue magasin.',
+    nomModele: 'modele_articles.csv',
+    colonnes: [
+      { nom: 'code_article', obligatoire: true, aide: 'Code unique de l’article (ex. ART-001).' },
+      { nom: 'designation', obligatoire: true, aide: 'Désignation complète de l’article.' },
+      { nom: 'unite_mesure', obligatoire: true, aide: 'Unité de mesure (ex. Ramette, Boîte, Unité).' },
+      { nom: 'seuil_reapprovisionnement', aide: 'Seuil d’alerte stock critique (0 par défaut).' },
+      { nom: 'prix_unitaire_moyen_pondere', aide: 'PUMP initial en FCFA (0 par défaut).' },
+      { nom: 'quantite_stock', aide: 'Quantité initiale en stock (0 par défaut).' },
+      { nom: 'actif', aide: 'oui / non (oui par défaut).' },
+      { nom: 'description', aide: 'Description ou caractéristiques techniques.' },
+    ],
+    exemples: [
+      ['ART-001', 'Ramette papier A4 80g', 'Ramette', '20', '3250', '150', 'oui', 'Papier blanc double A'],
+      ['ART-002', 'Stylo à bille bleu', 'Boîte', '10', '1500', '45', 'oui', 'Boîte de 50 stylos'],
+    ],
+  },
   directions: {
     titre: 'Importer des directions',
     description: 'Création en masse de directions rattachées à une ou plusieurs Structures existantes.',

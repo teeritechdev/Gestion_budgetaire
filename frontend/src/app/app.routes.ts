@@ -43,7 +43,21 @@ export const routes: Routes = [
       { path: 'security/directions-services', pathMatch: 'full', redirectTo: 'security/directions' },
       { path: 'security/unites-organisationnelles', pathMatch: 'full', redirectTo: 'security/directions' },
       { path: 'security/entites', pathMatch: 'full', redirectTo: 'security/structures' },
-      { path: 'security/audit-logs', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/security/audit-logs'] }, loadComponent: () => import('./features/security/audit-logs/audit-logs-list.component').then(m => m.AuditLogsListComponent) }
+      { path: 'security/audit-logs', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/security/audit-logs'] }, loadComponent: () => import('./features/security/audit-logs/audit-logs-list.component').then(m => m.AuditLogsListComponent) },
+      { path: 'stock', pathMatch: 'full', redirectTo: 'stock/articles' },
+      { path: 'stock/articles', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/stock/articles'] }, loadComponent: () => import('./features/stock/articles/articles-list.component').then(m => m.ArticlesListComponent) },
+      { path: 'stock/demandes-magasin', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/stock/demandes-magasin'] }, loadComponent: () => import('./features/stock/demandes-magasin/demandes-magasin.component').then(m => m.DemandesMagasinComponent) },
+      { path: 'stock/mouvements', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/stock/mouvements'] }, loadComponent: () => import('./features/stock/mouvements/mouvements-stock.component').then(m => m.MouvementsStockComponent) },
+      { path: 'achats', pathMatch: 'full', redirectTo: 'achats/fournisseurs' },
+      { path: 'achats/fournisseurs', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/achats/fournisseurs'] }, loadComponent: () => import('./features/achats/fournisseurs/fournisseurs-list.component').then(m => m.FournisseursListComponent) },
+      { path: 'achats/demandes-achat', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/achats/demandes-achat'] }, loadComponent: () => import('./features/achats/demandes-achat/demandes-achat-list.component').then(m => m.DemandesAchatListComponent) },
+      { path: 'achats/bons-commande', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/achats/bons-commande'] }, loadComponent: () => import('./features/achats/bons-commande/bons-commande-list.component').then(m => m.BonsCommandeListComponent) },
+      { path: 'achats/abonnements', pathMatch: 'full', redirectTo: 'abonnements' },
+      { path: 'abonnements', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/abonnements'] }, loadComponent: () => import('./features/abonnements/abonnements-list.component').then(m => m.AbonnementsListComponent) },
+      { path: 'abonnements/echeancier', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/abonnements/echeancier'] }, loadComponent: () => import('./features/abonnements/echeancier-global.component').then(m => m.EcheancierGlobalComponent) },
+      { path: 'workflows', pathMatch: 'full', redirectTo: 'workflows/definitions' },
+      { path: 'workflows/definitions', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/workflows/definitions'] }, loadComponent: () => import('./features/workflows/workflow-definitions-list.component').then(m => m.WorkflowDefinitionsListComponent) },
+      { path: 'workflows/instances', canActivate: [permissionGuard], data: { requiredPermissions: FEATURE_ACCESS['/workflows/instances'] }, loadComponent: () => import('./features/workflows/workflow-instances-list.component').then(m => m.WorkflowInstancesListComponent) }
     ]
   },
   { path: '**', redirectTo: 'dashboard' }

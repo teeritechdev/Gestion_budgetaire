@@ -65,7 +65,7 @@ const CLE_IDENTIFIANT = 'uab_budget_identifiant';
         <a routerLink="/mot-de-passe-oublie" class="text-sm font-semibold text-green-700 hover:underline">Mot de passe oublié ?</a>
       </div>
 
-      <p class="mt-8 text-center text-xs text-slate-500 sm:whitespace-nowrap">Un problème de connexion ? Contactez votre administrateur.</p>
+      <p class="mt-6 text-center text-xs text-slate-500 sm:whitespace-nowrap">Un problème de connexion ? Contactez votre administrateur.</p>
     </app-auth-shell>
   `,
 })
@@ -85,10 +85,10 @@ export class LoginComponent {
 
   constructor() {
     const memorise = lireIdentifiantMemorise();
-    // Retour de « mot de passe oublié » : l'identifiant est prérempli.
+    // Retour de « mot de passe oublié » ou identifiant mémorisé
     const transmis = this.route.snapshot.queryParamMap.get('identifiant');
     this.identifiant = transmis || memorise || '';
-    this.memoriser = !!memorise;
+    this.memoriser = Boolean(memorise);
   }
 
   detecterMajuscules(event: KeyboardEvent): void {

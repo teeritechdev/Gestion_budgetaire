@@ -5,6 +5,8 @@ import { catchError, throwError } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 import { NotificationService } from '../services/notification.service';
 
+let sessionExpireeAffichee = false;
+
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const authService = inject(AuthService);
   const router = inject(Router);
@@ -31,7 +33,11 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => error);
       }
       if (error.status === 401) {
-        notify.error('Votre session a expiré. Veuillez vous reconnecter.', 'Session expirée');
+        if (!sessionExpireeAffichee && !router.url.includes('/login')) {
+          sessionExpireeAffichee = true;
+          notify.error('Votre session a expiré. Veuillez vous reconnecter.', 'Session expirée');
+          setTimeout(() => { sessionExpireeAffichee = false; }, 6000);
+        }
         authService.logout();
       } else if (error.status === 403 && error.error?.code === 'MOT_DE_PASSE_A_CHANGER') {
         // Mot de passe temporaire : le backend n'autorise que le profil tant qu'il n'est pas changé.

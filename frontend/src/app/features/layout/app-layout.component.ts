@@ -23,7 +23,7 @@ interface NavigationGroup { label: string; items: NavigationItem[]; }
       @if (mobileOpen()) {
         <button aria-label="Fermer le menu" class="fixed inset-0 z-30 bg-black/60 md:hidden" (click)="mobileOpen.set(false)"></button>
       }
-      <aside [class.translate-x-0]="mobileOpen()" [class.-translate-x-full]="!mobileOpen()" class="fixed inset-y-0 left-0 z-40 flex w-72 flex-col border-r border-green-100 bg-green-50 transition-transform md:translate-x-0">
+      <aside [class.translate-x-0]="mobileOpen()" [class.-translate-x-full]="!mobileOpen()" class="fixed inset-y-0 left-0 z-40 flex w-80 flex-col border-r border-green-100 bg-green-50 transition-transform md:translate-x-0">
         <div class="sidebar-brand flex h-16 items-center gap-3 border-b border-green-800 px-5">
           <div class="brand-mark flex h-10 w-10 items-center justify-center rounded-xl text-lg font-bold">U</div>
           <div><p class="font-bold text-white">UAB Assurances</p><p class="text-xs text-blue-400">Gestion intégrée</p></div>
@@ -32,17 +32,17 @@ interface NavigationGroup { label: string; items: NavigationItem[]; }
         <nav class="flex-1 space-y-6 overflow-y-auto px-3 py-5">
           @if (canAccessDashboard()) {
           <div>
-            <p class="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-500">Pilotage</p>
-            <a routerLink="/dashboard" routerLinkActive="bg-green-700 text-white font-semibold" [routerLinkActiveOptions]="{ exact: true }" (click)="mobileOpen.set(false)" class="flex items-center gap-3 rounded-xl whitespace-nowrap px-3 py-2.5 text-[15px] font-bold text-slate-700 transition hover:bg-green-700 hover:text-white"><span class="sidebar-nav-icon flex w-6 justify-center text-green-700"><app-icon name="dashboard" /></span>Tableau de bord</a>
+            <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">Pilotage</p>
+            <a routerLink="/dashboard" routerLinkActive="bg-green-700 text-white font-semibold" [routerLinkActiveOptions]="{ exact: true }" (click)="mobileOpen.set(false)" class="flex items-center gap-3 rounded-xl whitespace-nowrap px-3 py-2.5 text-[15px] font-bold text-slate-700 transition hover:bg-green-100 hover:text-green-900"><span class="sidebar-nav-icon flex w-6 justify-center text-green-700"><app-icon name="dashboard" /></span>Tableau de bord</a>
           </div>
           }
           @for (group of visibleGroups(); track group.label) {
             <div>
-              <p class="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[.16em] text-slate-500">{{ group.label }}</p>
+              <p class="mb-2 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500 whitespace-nowrap">{{ group.label }}</p>
               <div class="space-y-1">
                 @for (item of group.items; track item.path) {
                   @if (item.children?.length) {
-                    <a [routerLink]="item.path" [queryParams]="{ onglet: item.children![0].onglet }" routerLinkActive="bg-green-700 text-white font-semibold" [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }" [attr.aria-expanded]="isOpen(item)" (click)="mobileOpen.set(false)" class="flex items-center gap-3 rounded-xl whitespace-nowrap px-3 py-2.5 text-[15px] font-bold text-slate-700 transition hover:bg-green-700 hover:text-white"><span class="sidebar-nav-icon flex w-6 justify-center text-green-700"><app-icon [name]="item.icon" /></span><span class="flex-1">{{ item.label }}</span><span class="transition-transform" [class.rotate-90]="isOpen(item)"><app-icon name="chevron" classe="h-4 w-4" /></span></a>
+                    <a [routerLink]="item.path" [queryParams]="{ onglet: item.children![0].onglet }" routerLinkActive="bg-green-700 text-white font-semibold" [routerLinkActiveOptions]="{ paths: 'subset', queryParams: 'ignored', matrixParams: 'ignored', fragment: 'ignored' }" [attr.aria-expanded]="isOpen(item)" (click)="mobileOpen.set(false)" class="flex items-center gap-3 rounded-xl whitespace-nowrap px-3 py-2.5 text-[15px] font-bold text-slate-700 transition hover:bg-green-100 hover:text-green-900"><span class="sidebar-nav-icon flex w-6 justify-center text-green-700"><app-icon [name]="item.icon" /></span><span class="flex-1">{{ item.label }}</span><span class="transition-transform" [class.rotate-90]="isOpen(item)"><app-icon name="chevron" classe="h-4 w-4" /></span></a>
                     @if (isOpen(item)) {
                       <div class="sidebar-subnav ml-6 mt-1 space-y-1 border-l-2 border-green-200 pl-3" role="group" [attr.aria-label]="'Sous-onglets ' + item.label">
                         @for (child of item.children; track child.onglet) {
@@ -51,7 +51,7 @@ interface NavigationGroup { label: string; items: NavigationItem[]; }
                       </div>
                     }
                   } @else {
-                    <a [routerLink]="item.path" routerLinkActive="bg-green-700 text-white font-semibold" (click)="mobileOpen.set(false)" class="flex items-center gap-3 rounded-xl whitespace-nowrap px-3 py-2.5 text-[15px] font-bold text-slate-700 transition hover:bg-green-700 hover:text-white"><span class="sidebar-nav-icon flex w-6 justify-center text-green-700"><app-icon [name]="item.icon" /></span>{{ item.label }}</a>
+                    <a [routerLink]="item.path" routerLinkActive="bg-green-700 text-white font-semibold" [routerLinkActiveOptions]="{ exact: true }" (click)="mobileOpen.set(false)" class="flex items-center gap-3 rounded-xl whitespace-nowrap px-3 py-2.5 text-[15px] font-bold text-slate-700 transition hover:bg-green-100 hover:text-green-900"><span class="sidebar-nav-icon flex w-6 justify-center text-green-700"><app-icon [name]="item.icon" /></span>{{ item.label }}</a>
                   }
                 }
               </div>
@@ -66,7 +66,7 @@ interface NavigationGroup { label: string; items: NavigationItem[]; }
           </a>
         </div>
       </aside>
-      <div class="flex h-dvh min-w-0 flex-col md:pl-72">
+      <div class="flex h-dvh min-w-0 flex-col md:pl-80">
         <header class="app-header z-20 flex h-16 shrink-0 items-center justify-between border-b-2 border-green-800 bg-green-700 px-4 md:px-8">
           <div class="flex items-center gap-3"><button aria-label="Ouvrir le menu" (click)="mobileOpen.set(true)" class="rounded-lg border border-slate-300 px-2.5 py-1.5 text-slate-700 md:hidden">☰</button><span class="text-green-700"><app-icon name="brand" classe="h-5 w-5" /></span><span class="text-sm font-semibold text-slate-800">Plateforme de Gestion Budgétaire</span></div>
           <div class="menu-utilisateur relative">
@@ -141,6 +141,24 @@ export class AppLayoutComponent {
       { label: 'Clés statistiques', path: '/budget/statistiques-cles', icon: 'statistiques' },
       { label: 'Révisions budgétaires', path: '/budget/revisions', icon: 'revisions' },
       { label: 'Journal des mouvements', path: '/budget/journal-mouvements', icon: 'journal' }
+    ] },
+    { label: 'Gestion des stocks', items: [
+      { label: 'Articles', path: '/stock/articles', icon: 'articles' },
+      { label: 'Demandes d’articles', path: '/stock/demandes-magasin', icon: 'demandes' },
+      { label: 'Mouvements de stock', path: '/stock/mouvements', icon: 'mouvements' }
+    ] },
+    { label: 'Gestion des achats', items: [
+      { label: 'Fournisseurs', path: '/achats/fournisseurs', icon: 'fournisseurs' },
+      { label: 'Demandes d’achat', path: '/achats/demandes-achat', icon: 'achats' },
+      { label: 'Bons de commande', path: '/achats/bons-commande', icon: 'bons-commande' }
+    ] },
+    { label: 'Abonnements & Contrats', items: [
+      { label: 'Contrats récurrents', path: '/abonnements', icon: 'abonnements' },
+      { label: 'Échéancier & Facturation', path: '/abonnements/echeancier', icon: 'echeancier' }
+    ] },
+    { label: 'Circuits & Workflows', items: [
+      { label: 'Modèles de processus', path: '/workflows/definitions', icon: 'workflow' },
+      { label: 'Suivi des instances', path: '/workflows/instances', icon: 'instances' }
     ] },
     { label: 'Administration', items: [
       { label: 'Structure', path: '/security/structures', icon: 'structure' },

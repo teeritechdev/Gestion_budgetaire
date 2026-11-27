@@ -128,17 +128,17 @@ const CHAMP = 'w-full rounded-lg border border-slate-300 p-2';
 
     <div class="stats-grid grid gap-4 sm:grid-cols-3">
       <div class="rounded-2xl border border-slate-200 bg-white p-4">
-        <p class="text-xs font-medium text-slate-500">Affectations en cours</p>
-        <p class="mt-1 text-2xl font-bold text-slate-900">{{ indicateurs().enCours }}</p>
+        <p class="text-xs font-semibold text-slate-500 whitespace-nowrap">Affectations en cours</p>
+        <p class="mt-1 text-2xl font-bold font-mono text-slate-900">{{ indicateurs().enCours }}</p>
       </div>
       <div class="rounded-2xl border border-slate-200 bg-white p-4">
-        <p class="text-xs font-medium text-slate-500">Salariés affectés</p>
-        <p class="mt-1 text-2xl font-bold text-slate-900">{{ indicateurs().affectes }}</p>
+        <p class="text-xs font-semibold text-slate-500 whitespace-nowrap">Salariés affectés</p>
+        <p class="mt-1 text-2xl font-bold font-mono text-slate-900">{{ indicateurs().affectes }}</p>
       </div>
       <button type="button" (click)="voirSansAffectation()" [disabled]="!indicateurs().sansAffectation"
         class="rounded-2xl border border-slate-200 bg-white p-4 text-left disabled:cursor-default">
-        <p class="text-xs font-medium text-slate-500">Salariés actifs sans affectation</p>
-        <p class="mt-1 text-2xl font-bold" [class.text-amber-700]="indicateurs().sansAffectation" [class.text-slate-900]="!indicateurs().sansAffectation">{{ indicateurs().sansAffectation }}</p>
+        <p class="text-xs font-semibold text-slate-500 whitespace-nowrap">Salariés actifs sans affectation</p>
+        <p class="mt-1 text-2xl font-bold font-mono" [class.text-amber-700]="indicateurs().sansAffectation" [class.text-slate-900]="!indicateurs().sansAffectation">{{ indicateurs().sansAffectation }}</p>
         @if (indicateurs().sansAffectation) { <p class="mt-1 text-[11px] font-medium text-green-700">Voir la liste →</p> }
       </button>
     </div>

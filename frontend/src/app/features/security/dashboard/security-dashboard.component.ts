@@ -50,14 +50,14 @@ import { AuditLog } from '../../../core/models/audit-log.model';
         <!-- Card Utilisateurs -->
         <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-lg relative overflow-hidden group hover:border-blue-500/40 transition-all">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600">Utilisateurs</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap">Utilisateurs</span>
             <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
               </svg>
             </div>
           </div>
-          <div class="text-3xl font-extrabold text-white tracking-tight">{{ totalUsers() }}</div>
+          <div class="text-3xl font-extrabold font-mono text-slate-900 tracking-tight">{{ totalUsers() }}</div>
           <div class="mt-2 flex items-center gap-2 text-xs text-slate-600">
             <span class="text-blue-400 font-medium">{{ activeUsers() }} actifs</span>
             <span>•</span>
@@ -68,14 +68,14 @@ import { AuditLog } from '../../../core/models/audit-log.model';
         <!-- Card Rôles & RBAC -->
         <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-lg relative overflow-hidden group hover:border-blue-500/40 transition-all">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600">Rôles RBAC</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap">Rôles RBAC</span>
             <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
             </div>
           </div>
-          <div class="text-3xl font-extrabold text-white tracking-tight">{{ totalRoles() }}</div>
+          <div class="text-3xl font-extrabold font-mono text-slate-900 tracking-tight">{{ totalRoles() }}</div>
           <div class="mt-2 flex items-center gap-2 text-xs text-slate-600">
             <span class="text-blue-300 font-medium">{{ totalPermissions() }} permissions</span>
             <span>•</span>
@@ -86,14 +86,14 @@ import { AuditLog } from '../../../core/models/audit-log.model';
         <!-- Card Structures & Organigramme -->
         <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-lg relative overflow-hidden group hover:border-blue-500/40 transition-all">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600">Structures</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap">Structures</span>
             <div class="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-400 flex items-center justify-center border border-blue-500/20">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
               </svg>
             </div>
           </div>
-          <div class="text-3xl font-extrabold text-white tracking-tight">{{ totalStructures() }}</div>
+          <div class="text-3xl font-extrabold font-mono text-slate-900 tracking-tight">{{ totalStructures() }}</div>
           <div class="mt-2 flex items-center gap-2 text-xs text-slate-600">
             <span class="text-blue-300 font-medium">{{ totalEntites() }} entités</span>
             <span>•</span>
@@ -104,14 +104,14 @@ import { AuditLog } from '../../../core/models/audit-log.model';
         <!-- Card Audits Inaltérables -->
         <div class="p-6 rounded-2xl bg-white border border-slate-200/80 shadow-lg relative overflow-hidden group hover:border-blue-500/40 transition-all">
           <div class="flex items-center justify-between mb-4">
-            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600">Journaux d'Audit</span>
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-600 whitespace-nowrap">Journaux d'Audit</span>
             <div class="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-400 flex items-center justify-center border border-amber-500/20">
               <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
           </div>
-          <div class="text-3xl font-extrabold text-white tracking-tight">{{ totalAuditLogs() }}</div>
+          <div class="text-3xl font-extrabold font-mono text-slate-900 tracking-tight">{{ totalAuditLogs() }}</div>
           <div class="mt-2 flex items-center gap-2 text-xs text-slate-600">
             <span class="text-amber-400 font-medium">Historique immuable</span>
             <span>•</span>

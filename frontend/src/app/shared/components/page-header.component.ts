@@ -25,7 +25,7 @@ import { AppIconComponent } from './app-icon.component';
           </span>
           <div class="min-w-0">
             @if (module) {
-              <p class="text-[11px] font-semibold uppercase tracking-[.16em] text-green-700">{{ module }}</p>
+              <p class="text-[11px] font-semibold uppercase tracking-wider text-green-700 whitespace-nowrap">{{ module }}</p>
             }
             <h1 class="mt-0.5 text-2xl font-bold tracking-tight text-slate-900 md:text-[1.7rem]">{{ title }}</h1>
             @if (description) {
