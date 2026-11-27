@@ -1,23 +1,21 @@
 package com.budget.backend.abonnement.controller;
 
+import com.budget.backend.abonnement.dto.AbonnementRequestDto;
+import com.budget.backend.abonnement.dto.AbonnementResponseDto;
+import com.budget.backend.abonnement.dto.EcheanceAbonnementResponseDto;
+import com.budget.backend.abonnement.dto.RapprochementFactureDto;
+import com.budget.backend.abonnement.service.AbonnementService;
 import com.budget.backend.common.PageResponseDto;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import com.budget.backend.abonnement.dto.AbonnementRequestDto;
-import com.budget.backend.abonnement.dto.AbonnementResponseDto;
-import com.budget.backend.abonnement.dto.AlertesResponseDto;
-import com.budget.backend.abonnement.dto.EcheanceResponseDto;
-import com.budget.backend.abonnement.service.AbonnementService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -31,25 +29,30 @@ public class AbonnementController {
 
     @GetMapping
     @PreAuthorize("hasPermission(null, 'abonnement.lire')")
-    public ResponseEntity<PageResponseDto<AbonnementResponseDto>> listerOuFiltrer(
-            @RequestParam(required = false) UUID fournisseurId,
+    public ResponseEntity<PageResponseDto<AbonnementResponseDto>> lister(
             @RequestParam(required = false) String statut,
+            @RequestParam(required = false) UUID fournisseurId,
             @RequestParam(required = false) UUID responsableId,
-            @PageableDefault(size = 20, sort = "codeAbonnement") Pageable pageable) {
-        return ResponseEntity.ok(service.filtrer(fournisseurId, statut, responsableId, pageable));
+            @RequestParam(required = false) String recherche,
+            @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
+        return ResponseEntity.ok(service.filtrer(statut, fournisseurId, responsableId, recherche, pageable));
     }
 
-    /** Echéances proches et préavis atteints (à traiter par les responsables). */
-    @GetMapping("/alertes")
+    @GetMapping("/echeances")
     @PreAuthorize("hasPermission(null, 'abonnement.lire')")
-    public ResponseEntity<AlertesResponseDto> alertes(@RequestParam(defaultValue = "10") int jours) {
-        return ResponseEntity.ok(service.alertes(Math.max(jours, 0), LocalDate.now()));
+    public ResponseEntity<PageResponseDto<EcheanceAbonnementResponseDto>> listerToutesEcheances(
+            @RequestParam(required = false) String statut,
+            @RequestParam(required = false) UUID abonnementId,
+            @PageableDefault(size = 20, sort = "dateEcheance", direction = Sort.Direction.ASC) Pageable pageable) {
+        return ResponseEntity.ok(service.filtrerToutesEcheances(statut, abonnementId, pageable));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission(null, 'abonnement.lire')")
     public ResponseEntity<AbonnementResponseDto> obtenirParId(@PathVariable UUID id) {
-        return service.trouverParId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        return service.trouverParId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping
@@ -64,27 +67,37 @@ public class AbonnementController {
         return ResponseEntity.ok(service.modifier(id, dto));
     }
 
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasPermission(null, 'abonnement.supprimer')")
+    public ResponseEntity<Void> supprimer(@PathVariable UUID id) {
+        service.supprimer(id);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/{id}/echeances")
     @PreAuthorize("hasPermission(null, 'abonnement.lire')")
-    public ResponseEntity<PageResponseDto<EcheanceResponseDto>> echeances(
-            @PathVariable UUID id,
-            @RequestParam(required = false) String statut,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateDebut,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate dateFin,
-            @PageableDefault(size = 20, sort = "numEcheance") Pageable pageable) {
-        return ResponseEntity.ok(service.echeances(id, statut, dateDebut, dateFin, pageable));
+    public ResponseEntity<List<EcheanceAbonnementResponseDto>> obtenirEcheances(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.obtenirEcheances(id));
     }
 
     @PostMapping("/{id}/generer-echeances")
-    @PreAuthorize("hasPermission(null, 'abonnement.generer_echeances')")
-    public ResponseEntity<List<EcheanceResponseDto>> genererEcheances(@PathVariable UUID id) {
-        return ResponseEntity.ok(service.genererEcheances(id));
+    @PreAuthorize("hasPermission(null, 'abonnement.modifier')")
+    public ResponseEntity<List<EcheanceAbonnementResponseDto>> genererEcheances(@PathVariable UUID id) {
+        return ResponseEntity.ok(service.genererEcheancier(id));
     }
 
-    /** Reconduction : prolonge d'un an et génère les nouvelles échéances. */
-    @PostMapping("/{id}/reconduire")
+    @PostMapping("/{id}/echeances/{echeanceId}/generer-bc")
+    @PreAuthorize("hasPermission(null, 'bon_commande.creer') or hasPermission(null, 'abonnement.modifier')")
+    public ResponseEntity<EcheanceAbonnementResponseDto> genererBcPourEcheance(
+            @PathVariable UUID id, @PathVariable UUID echeanceId) {
+        return ResponseEntity.ok(service.genererBcPourEcheance(id, echeanceId));
+    }
+
+    @PostMapping("/{id}/echeances/{echeanceId}/rapprocher-facture")
     @PreAuthorize("hasPermission(null, 'abonnement.modifier')")
-    public ResponseEntity<AbonnementResponseDto> reconduire(@PathVariable UUID id) {
-        return ResponseEntity.ok(service.reconduire(id));
+    public ResponseEntity<EcheanceAbonnementResponseDto> rapprocherFacture(
+            @PathVariable UUID id, @PathVariable UUID echeanceId, @Valid @RequestBody RapprochementFactureDto dto) {
+        return ResponseEntity.ok(service.rapprocherFacture(id, echeanceId, dto));
     }
 }
+

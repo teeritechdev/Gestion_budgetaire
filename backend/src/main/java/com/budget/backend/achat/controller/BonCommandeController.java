@@ -1,14 +1,15 @@
 package com.budget.backend.achat.controller;
 
+import com.budget.backend.achat.dto.BonCommandeResponseDto;
+import com.budget.backend.achat.dto.CreerBcDepuisDaDto;
+import com.budget.backend.achat.service.BonCommandeService;
 import com.budget.backend.common.PageResponseDto;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
-import com.budget.backend.achat.dto.BonCommandeCreateDto;
-import com.budget.backend.achat.dto.BonCommandeResponseDto;
-import com.budget.backend.achat.service.BonCommandeService;
-import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -16,7 +17,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -29,40 +29,41 @@ public class BonCommandeController {
 
     @GetMapping
     @PreAuthorize("hasPermission(null, 'bon_commande.lire')")
-    public ResponseEntity<PageResponseDto<BonCommandeResponseDto>> listerOuFiltrer(
-            @RequestParam(required = false) String codeBc,
-            @RequestParam(required = false) UUID fournisseurId,
+    public ResponseEntity<PageResponseDto<BonCommandeResponseDto>> lister(
             @RequestParam(required = false) String statut,
-            @RequestParam(required = false) UUID daId,
+            @RequestParam(required = false) UUID fournisseurId,
+            @RequestParam(required = false) Integer annee,
+            @RequestParam(required = false) String recherche,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(service.filtrer(codeBc, fournisseurId, statut, daId, pageable));
+        return ResponseEntity.ok(service.filtrer(statut, fournisseurId, annee, recherche, pageable));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize("hasPermission(null, 'bon_commande.lire')")
     public ResponseEntity<BonCommandeResponseDto> obtenirParId(@PathVariable UUID id) {
-        return service.trouverParId(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build());
+        return service.trouverParId(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping
+    @PostMapping("/depuis-da/{daId}")
     @PreAuthorize("hasPermission(null, 'bon_commande.creer')")
-    public ResponseEntity<BonCommandeResponseDto> creer(@Valid @RequestBody BonCommandeCreateDto dto) {
-        return new ResponseEntity<>(service.creer(dto), HttpStatus.CREATED);
-    }
-
-    @PutMapping("/{id}/emettre")
-    @PreAuthorize("hasPermission(null, 'bon_commande.emettre')")
-    public ResponseEntity<BonCommandeResponseDto> emettre(@PathVariable UUID id) {
-        return ResponseEntity.ok(service.emettre(id));
+    public ResponseEntity<BonCommandeResponseDto> creerDepuisDa(
+            @PathVariable UUID daId,
+            @Valid @RequestBody CreerBcDepuisDaDto dto) {
+        return new ResponseEntity<>(service.creerDepuisDa(daId, dto), HttpStatus.CREATED);
     }
 
     @GetMapping("/{id}/pdf")
     @PreAuthorize("hasPermission(null, 'bon_commande.lire')")
-    public ResponseEntity<byte[]> pdf(@PathVariable UUID id) {
+    public ResponseEntity<byte[]> telechargerPdf(@PathVariable UUID id) {
         byte[] pdf = service.genererPdf(id);
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment", "bon_commande_" + id + ".pdf");
+        headers.setContentDisposition(ContentDisposition.inline()
+                .filename("bon_commande_" + id + ".pdf")
+                .build());
         return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 }
+

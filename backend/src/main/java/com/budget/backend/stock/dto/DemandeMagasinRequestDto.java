@@ -15,8 +15,8 @@ public class DemandeMagasinRequestDto {
     private String numeroDemande;
     @NotNull
     private UUID serviceId;
-    @NotBlank
-    private String entiteCode;
+    // Optionnel : déduit de la direction du service ; s'il est fourni, il doit correspondre.
+    private String structureCode;
     @NotBlank
     private String objet;
     @NotEmpty

@@ -16,6 +16,11 @@ import java.util.UUID;
 public interface DemandeMagasinRepository extends JpaRepository<DemandeMagasin, UUID>, JpaSpecificationExecutor<DemandeMagasin> {
     boolean existsByNumeroDemande(String numeroDemande);
 
+    long countByStatut(String statut);
+
+    @Query("select count(d) from DemandeMagasin d where d.statut in :statuts")
+    long countByStatutIn(@Param("statuts") java.util.Collection<String> statuts);
+
     // Verrou pessimiste : empêche deux services simultanés de dépasser la quantité demandée
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select d from DemandeMagasin d where d.id = :id")

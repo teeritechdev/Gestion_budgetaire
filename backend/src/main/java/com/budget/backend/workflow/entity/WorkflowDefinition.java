@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -24,21 +25,33 @@ public class WorkflowDefinition {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @Column(unique = true, nullable = false, length = 50)
-    private String code; // Ex: CHAINE_ENGAGEMENT
+    @Column(nullable = false, unique = true, length = 50)
+    private String code;
 
     @Column(nullable = false, length = 255)
     private String libelle;
 
-    @Builder.Default
-    private Boolean actif = true;
+    @Column(columnDefinition = "TEXT")
+    private String description;
+
+    @Column(name = "type_entite", nullable = false, length = 50)
+    private String typeEntite;
 
     @Builder.Default
+    @Column(nullable = false)
+    private Boolean actif = true;
+
     @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("numEtape ASC, codeEtape ASC")
+    @OrderBy("numEtape ASC")
+    @Builder.Default
     private List<WorkflowEtape> etapes = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
+
+    @UpdateTimestamp
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 }
+

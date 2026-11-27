@@ -27,6 +27,9 @@ public class RepartitionCspRule {
     @Column(name = "activite_csp_id", nullable = false)
     private UUID activiteCspId;
 
+    @Column(name = "allocation_structure_id")
+    private UUID allocationStructureId;
+
     @Column(name = "entite_beneficiaire", nullable = false, length = 50)
     private String entiteBeneficiaire;
 
@@ -37,7 +40,7 @@ public class RepartitionCspRule {
     private String cleType; // ex: EFFECTIF, CHIFFRE_AFFAIRES
 
     @Column(name = "valeur_cle", precision = 15, scale = 4)
-    private BigDecimal valeurCle;
+    private BigDecimal valeurCle; // Ratio stocké entre 0 et 1, par exemple 0.02 pour 2 %
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)

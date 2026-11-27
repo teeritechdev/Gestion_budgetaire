@@ -1,5 +1,6 @@
 package com.budget.backend.security.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.security.entity.Permission;
 import com.budget.backend.security.repository.PermissionRepository;
 import com.lowagie.text.Document;
@@ -124,21 +125,25 @@ public class PermissionService {
 
     // --- Export CSV ---
     public String exporterEnCsv(String code, String libelle, String module) {
-        List<Permission> permissions = filtrerPermissions(code, libelle, module);
+        return exporterEnCsv(filtrerPermissions(code, libelle, module));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<Permission> permissions) {
         StringBuilder csv = new StringBuilder("ID;Code;Libelle;Module;Date_Creation\n");
         for (Permission p : permissions) {
-            csv.append(p.getId()).append(";")
-                    .append(p.getCode()).append(";")
-                    .append(p.getLibelle()).append(";")
-                    .append(p.getModule()).append(";")
-                    .append(p.getCreatedAt()).append("\n");
+            csv.append(CsvUtils.ligne(';', p.getId(), p.getCode(), p.getLibelle(), p.getModule(), p.getCreatedAt()));
         }
         return csv.toString();
     }
 
     // --- Export PDF ---
     public byte[] exporterEnPdf(String code, String libelle, String module) {
-        List<Permission> permissions = filtrerPermissions(code, libelle, module);
+        return exporterEnPdf(filtrerPermissions(code, libelle, module));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<Permission> permissions) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 
         try {

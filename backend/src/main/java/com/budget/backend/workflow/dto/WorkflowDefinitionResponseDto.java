@@ -1,30 +1,47 @@
 package com.budget.backend.workflow.dto;
 
 import com.budget.backend.workflow.entity.WorkflowDefinition;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class WorkflowDefinitionResponseDto {
     private UUID id;
     private String code;
     private String libelle;
+    private String description;
+    private String typeEntite;
     private Boolean actif;
-    private List<WorkflowEtapeResponseDto> etapes;
+    private Integer nombreEtapes;
+    private List<WorkflowEtapeDto> etapes;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
 
-    public static WorkflowDefinitionResponseDto from(WorkflowDefinition d) {
-        WorkflowDefinitionResponseDto dto = new WorkflowDefinitionResponseDto();
-        dto.setId(d.getId());
-        dto.setCode(d.getCode());
-        dto.setLibelle(d.getLibelle());
-        dto.setActif(d.getActif());
-        dto.setEtapes(d.getEtapes().stream().map(WorkflowEtapeResponseDto::from).collect(Collectors.toList()));
-        dto.setCreatedAt(d.getCreatedAt());
-        return dto;
+    public static WorkflowDefinitionResponseDto from(WorkflowDefinition def) {
+        if (def == null) return null;
+        var etapesDto = def.getEtapes() != null
+                ? def.getEtapes().stream().map(WorkflowEtapeDto::from).toList()
+                : List.<WorkflowEtapeDto>of();
+
+        return WorkflowDefinitionResponseDto.builder()
+                .id(def.getId())
+                .code(def.getCode())
+                .libelle(def.getLibelle())
+                .description(def.getDescription())
+                .typeEntite(def.getTypeEntite())
+                .actif(def.getActif())
+                .nombreEtapes(etapesDto.size())
+                .etapes(etapesDto)
+                .createdAt(def.getCreatedAt())
+                .updatedAt(def.getUpdatedAt())
+                .build();
     }
 }
+

@@ -1,5 +1,6 @@
 package com.budget.backend.budget.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.budget.entity.JournalMouvementsBudgetaire;
 import com.budget.backend.budget.repository.JournalMouvementsBudgetaireRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,22 +34,25 @@ public class JournalMouvementsBudgetaireService {
     }
 
     public String exporterEnCsv(Integer anneeExercice, UUID allocationStructureId, String typeMouvement) {
-        List<JournalMouvementsBudgetaire> list = filtrerMouvements(anneeExercice, allocationStructureId, typeMouvement);
+        return exporterEnCsv(filtrerMouvements(anneeExercice, allocationStructureId, typeMouvement));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<JournalMouvementsBudgetaire> list) {
         StringBuilder sb = new StringBuilder("ID,Exercice,Type Mouvement,Montant Antérieur,Variation,Nouveau Montant,Référence\n");
         for (JournalMouvementsBudgetaire j : list) {
-            sb.append(j.getId()).append(",")
-                    .append(j.getAnneeExercice()).append(",")
-                    .append("\"").append(j.getTypeMouvement()).append("\",")
-                    .append(j.getMontantAnterieur()).append(",")
-                    .append(j.getVariation()).append(",")
-                    .append(j.getNouveauMontant()).append(",")
-                    .append("\"").append(j.getReferenceDocument() != null ? j.getReferenceDocument() : "").append("\"\n");
+            sb.append(CsvUtils.ligne(',', j.getId(), j.getAnneeExercice(), j.getTypeMouvement(), j.getMontantAnterieur(),
+                    j.getVariation(), j.getNouveauMontant(), j.getReferenceDocument()));
         }
         return sb.toString();
     }
 
     public byte[] exporterEnPdf(Integer anneeExercice, UUID allocationStructureId, String typeMouvement) {
-        List<JournalMouvementsBudgetaire> list = filtrerMouvements(anneeExercice, allocationStructureId, typeMouvement);
+        return exporterEnPdf(filtrerMouvements(anneeExercice, allocationStructureId, typeMouvement));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<JournalMouvementsBudgetaire> list) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document doc = new com.lowagie.text.Document();
             com.lowagie.text.pdf.PdfWriter.getInstance(doc, out);

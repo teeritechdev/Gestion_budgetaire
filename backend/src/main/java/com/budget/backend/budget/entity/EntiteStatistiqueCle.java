@@ -27,7 +27,8 @@ public class EntiteStatistiqueCle {
     @Column(name = "annee_exercice", nullable = false)
     private Integer anneeExercice;
 
-    private Integer mois; // 1 à 12
+    @Column(name = "mois", nullable = true)
+    private Integer mois; // 1 à 12, null pour une mesure annuelle
 
     @Column(name = "entite_code", nullable = false, length = 50)
     private String entiteCode;

@@ -1,5 +1,6 @@
 package com.budget.backend.budget.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.budget.entity.ActiviteCatalogue;
 import com.budget.backend.budget.entity.ObjectifOperationnel;
 import com.budget.backend.budget.repository.ActiviteCatalogueRepository;
@@ -93,22 +94,27 @@ public class ActiviteCatalogueService {
 
     // Export CSV avec filtres
     public String exporterEnCsv(String codeActivite, String libelle, String description, UUID opId) {
-        List<ActiviteCatalogue> list = filtrerActivites(codeActivite, libelle, description, opId);
+        return exporterEnCsv(filtrerActivites(codeActivite, libelle, description, opId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<ActiviteCatalogue> list) {
         StringBuilder sb = new StringBuilder();
         sb.append("ID,Code Activité,Libellé,Description,Code OP\n");
         for (ActiviteCatalogue a : list) {
-            sb.append(a.getId()).append(",")
-                    .append("\"").append(a.getCodeActivite()).append("\",")
-                    .append("\"").append(a.getLibelle() != null ? a.getLibelle().replace("\"", "\"\"") : "").append("\",")
-                    .append("\"").append(a.getDescription() != null ? a.getDescription().replace("\"", "\"\"") : "").append("\",")
-                    .append("\"").append(a.getObjectifOperationnel() != null ? a.getObjectifOperationnel().getCodeOp() : "").append("\"\n");
+            sb.append(CsvUtils.ligne(',', a.getId(), a.getCodeActivite(), a.getLibelle(), a.getDescription(),
+                    a.getObjectifOperationnel() != null ? a.getObjectifOperationnel().getCodeOp() : ""));
         }
         return sb.toString();
     }
 
     // Export PDF avec filtres (OpenPDF)
     public byte[] exporterEnPdf(String codeActivite, String libelle, String description, UUID opId) {
-        List<ActiviteCatalogue> list = filtrerActivites(codeActivite, libelle, description, opId);
+        return exporterEnPdf(filtrerActivites(codeActivite, libelle, description, opId));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<ActiviteCatalogue> list) {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document();

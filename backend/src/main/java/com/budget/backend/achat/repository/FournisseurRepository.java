@@ -5,10 +5,14 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Repository
 public interface FournisseurRepository extends JpaRepository<Fournisseur, UUID>, JpaSpecificationExecutor<Fournisseur> {
+    Optional<Fournisseur> findByCodeFournisseur(String codeFournisseur);
+    Optional<Fournisseur> findByIfu(String ifu);
     boolean existsByCodeFournisseur(String codeFournisseur);
     boolean existsByIfu(String ifu);
 }
+

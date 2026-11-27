@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -20,21 +19,21 @@ import java.util.UUID;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class HistoriqueValidation {
 
-    public static final String VALIDE = "VALIDE";
-    public static final String REJETE = "REJETE";
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "da_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
+    @JoinColumn(name = "da_id", nullable = true)
     private DemandeAchat demandeAchat;
+
+    @Column(name = "instance_id")
+    private UUID instanceId;
 
     @Column(nullable = false, length = 50)
     private String etape;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "valideur_id", nullable = false)
     private Utilisateur valideur;
 
@@ -48,3 +47,4 @@ public class HistoriqueValidation {
     @Column(name = "date_decision", updatable = false)
     private LocalDateTime dateDecision;
 }
+

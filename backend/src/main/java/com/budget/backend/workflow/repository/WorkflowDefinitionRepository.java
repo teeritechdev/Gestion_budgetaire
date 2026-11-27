@@ -11,5 +11,7 @@ import java.util.UUID;
 @Repository
 public interface WorkflowDefinitionRepository extends JpaRepository<WorkflowDefinition, UUID>, JpaSpecificationExecutor<WorkflowDefinition> {
     Optional<WorkflowDefinition> findByCode(String code);
+    Optional<WorkflowDefinition> findByTypeEntiteAndActifTrue(String typeEntite);
     boolean existsByCode(String code);
 }
+

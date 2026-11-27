@@ -1,12 +1,10 @@
 package com.budget.backend.achat.entity;
 
-import com.budget.backend.budget.entity.BudgetAllocationStructure;
-import com.budget.backend.security.entity.Entite;
+import com.budget.backend.budget.entity.ActiviteCatalogue;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -26,22 +24,21 @@ public class DossierVentilationImpact {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "da_id", nullable = false)
     private DemandeAchat demandeAchat;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entite_impactee", referencedColumnName = "code", nullable = false)
-    private Entite entiteImpactee;
+    @Column(name = "entite_impactee", nullable = false, length = 20)
+    private String entiteImpactee;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "activite_impactee_id")
-    private BudgetAllocationStructure activiteImpactee;
+    private ActiviteCatalogue activiteImpactee;
 
-    @Column(name = "montant_impute", precision = 15, scale = 2, nullable = false)
+    @Column(name = "montant_impute", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantImpute;
 
-    @Column(name = "pourcentage_applique", precision = 5, scale = 2, nullable = false)
+    @Column(name = "pourcentage_applique", nullable = false, precision = 5, scale = 2)
     private BigDecimal pourcentageApplique;
 
     @Builder.Default
@@ -52,3 +49,4 @@ public class DossierVentilationImpact {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }
+

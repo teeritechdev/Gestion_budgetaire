@@ -23,13 +23,8 @@ import java.util.UUID;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class BonCommande {
 
-    public static final String CLASSIQUE = "CLASSIQUE";
-    public static final String CADRE_ANNUEL = "CADRE_ANNUEL";
-
     public static final String EMIS = "EMIS";
-    public static final String ENVOYE_FOURNISSEUR = "ENVOYE_FOURNISSEUR";
-    public static final String CADRE_EN_COURS = "CADRE_EN_COURS";
-    public static final String PARTIELLEMENT_FACTURE = "PARTIELLEMENT_FACTURE";
+    public static final String EN_COURS = "EN_COURS";
     public static final String SOLDE = "SOLDE";
     public static final String ANNULE = "ANNULE";
 
@@ -38,40 +33,37 @@ public class BonCommande {
     private UUID id;
 
     @Column(name = "code_bc", unique = true, nullable = false, length = 50)
-    private String codeBc; // Ex: BC-2026-0089
+    private String codeBc;
 
     @Builder.Default
     @Column(name = "type_bc", length = 30)
-    private String typeBc = CLASSIQUE;
+    private String typeBc = "CLASSIQUE";
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "da_id", nullable = false)
+    @JoinColumn(name = "da_id")
     private DemandeAchat demandeAchat;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "fournisseur_id", nullable = false)
     private Fournisseur fournisseur;
 
-    @Column(name = "montant_total_ht", precision = 15, scale = 2, nullable = false)
+    @Column(name = "montant_total_ht", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantTotalHt;
 
-    @Column(name = "montant_total_ttc", precision = 15, scale = 2, nullable = false)
+    @Column(name = "montant_total_ttc", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantTotalTtc;
 
     @Builder.Default
     @Column(name = "montant_facture_ttc", precision = 15, scale = 2)
     private BigDecimal montantFactureTtc = BigDecimal.ZERO;
 
-    // Colonne générée par la BDD : montant_total_ttc - montant_facture_ttc
-    @Column(name = "solde_restant_ttc", precision = 15, scale = 2, insertable = false, updatable = false)
-    private BigDecimal soldeRestantTtc;
-
     @Builder.Default
-    @Column(length = 30)
+    @Column(nullable = false, length = 30)
     private String statut = EMIS;
 
-    @Column(name = "date_emission")
-    private LocalDate dateEmission;
+    @Builder.Default
+    @Column(name = "date_emission", nullable = false)
+    private LocalDate dateEmission = LocalDate.now();
 
     @Builder.Default
     @OneToMany(mappedBy = "bonCommande", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -84,8 +76,5 @@ public class BonCommande {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    public BigDecimal calculerSolde() {
-        return montantTotalTtc.subtract(montantFactureTtc == null ? BigDecimal.ZERO : montantFactureTtc);
-    }
 }
+

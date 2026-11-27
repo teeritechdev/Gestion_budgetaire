@@ -24,13 +24,13 @@ public class Fournisseur {
     private UUID id;
 
     @Column(name = "code_fournisseur", unique = true, nullable = false, length = 50)
-    private String codeFournisseur; // Ex: FOURN-2026-0012
+    private String codeFournisseur;
 
     @Column(name = "raison_sociale", nullable = false, length = 200)
     private String raisonSociale;
 
     @Column(unique = true, nullable = false, length = 50)
-    private String ifu; // Identifiant Fiscal Unique
+    private String ifu;
 
     @Column(length = 150)
     private String email;
@@ -42,6 +42,7 @@ public class Fournisseur {
     private String adresse;
 
     @Builder.Default
+    @Column(nullable = false)
     private Boolean actif = true;
 
     @CreationTimestamp
@@ -52,3 +53,4 @@ public class Fournisseur {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }
+

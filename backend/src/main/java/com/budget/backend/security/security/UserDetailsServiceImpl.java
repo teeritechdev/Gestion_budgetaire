@@ -2,6 +2,7 @@ package com.budget.backend.security.security;
 
 import com.budget.backend.security.entity.Utilisateur;
 import com.budget.backend.security.repository.UtilisateurRepository;
+import org.springframework.security.authentication.DisabledException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -23,12 +24,22 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec l'email : " + email));
+    public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+        String trimmed = username != null ? username.trim() : "";
+        final String searchUser = ("admin".equalsIgnoreCase(trimmed) || "administrateur".equalsIgnoreCase(trimmed))
+                ? "admin@uab.bf"
+                : trimmed;
+        Utilisateur utilisateur = utilisateurRepository.findByUsername(searchUser)
+                .or(() -> utilisateurRepository.findByUsernameIgnoreCase(searchUser))
+                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur non trouvé avec le nom : " + username));
 
-        if (!utilisateur.getActif()) {
-            throw new RuntimeException("Ce compte utilisateur est désactivé.");
+        if (!Boolean.TRUE.equals(utilisateur.getActif())
+                || utilisateur.getSalarie() == null
+                || !Boolean.TRUE.equals(utilisateur.getSalarie().getActif())) {
+            throw new DisabledException("Ce compte utilisateur ou son dossier salarié est désactivé.");
+        }
+        if (utilisateur.getRole() == null) {
+            throw new DisabledException("Aucun rôle n'est attribué à ce compte utilisateur.");
         }
 
         Set<GrantedAuthority> authorities = new HashSet<>();
@@ -41,7 +52,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         );
 
         return new User(
-                utilisateur.getEmail(),
+                utilisateur.getUsername(),
                 utilisateur.getMotDePasseHash(),
                 utilisateur.getActif(),
                 true, true, true,

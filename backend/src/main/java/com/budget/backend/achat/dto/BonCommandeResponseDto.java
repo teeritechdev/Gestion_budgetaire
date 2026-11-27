@@ -1,7 +1,7 @@
 package com.budget.backend.achat.dto;
 
 import com.budget.backend.achat.entity.BonCommande;
-import lombok.Data;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -10,13 +10,18 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class BonCommandeResponseDto {
     private UUID id;
     private String codeBc;
     private String typeBc;
     private UUID daId;
-    private String codeDossier;
+    private String daCodeDossier;
+    private String daObjet;
     private FournisseurResponseDto fournisseur;
     private BigDecimal montantTotalHt;
     private BigDecimal montantTotalTtc;
@@ -24,27 +29,34 @@ public class BonCommandeResponseDto {
     private BigDecimal soldeRestantTtc;
     private String statut;
     private LocalDate dateEmission;
-    private List<LigneBCResponseDto> lignes;
+    private List<LigneBonCommandeResponseDto> lignes;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static BonCommandeResponseDto from(BonCommande b) {
-        BonCommandeResponseDto dto = new BonCommandeResponseDto();
-        dto.setId(b.getId());
-        dto.setCodeBc(b.getCodeBc());
-        dto.setTypeBc(b.getTypeBc());
-        dto.setDaId(b.getDemandeAchat().getId());
-        dto.setCodeDossier(b.getDemandeAchat().getCodeDossier());
-        dto.setFournisseur(FournisseurResponseDto.from(b.getFournisseur()));
-        dto.setMontantTotalHt(b.getMontantTotalHt());
-        dto.setMontantTotalTtc(b.getMontantTotalTtc());
-        dto.setMontantFactureTtc(b.getMontantFactureTtc());
-        dto.setSoldeRestantTtc(b.calculerSolde());
-        dto.setStatut(b.getStatut());
-        dto.setDateEmission(b.getDateEmission());
-        dto.setLignes(b.getLignes().stream().map(LigneBCResponseDto::from).collect(Collectors.toList()));
-        dto.setCreatedAt(b.getCreatedAt());
-        dto.setUpdatedAt(b.getUpdatedAt());
-        return dto;
+    public static BonCommandeResponseDto from(BonCommande bc) {
+        if (bc == null) return null;
+        BigDecimal facture = bc.getMontantFactureTtc() != null ? bc.getMontantFactureTtc() : BigDecimal.ZERO;
+        BigDecimal totalTtc = bc.getMontantTotalTtc() != null ? bc.getMontantTotalTtc() : BigDecimal.ZERO;
+        BigDecimal solde = totalTtc.subtract(facture);
+
+        return BonCommandeResponseDto.builder()
+                .id(bc.getId())
+                .codeBc(bc.getCodeBc())
+                .typeBc(bc.getTypeBc())
+                .daId(bc.getDemandeAchat() != null ? bc.getDemandeAchat().getId() : null)
+                .daCodeDossier(bc.getDemandeAchat() != null ? bc.getDemandeAchat().getCodeDossier() : null)
+                .daObjet(bc.getDemandeAchat() != null ? bc.getDemandeAchat().getObjet() : null)
+                .fournisseur(FournisseurResponseDto.from(bc.getFournisseur()))
+                .montantTotalHt(bc.getMontantTotalHt())
+                .montantTotalTtc(bc.getMontantTotalTtc())
+                .montantFactureTtc(facture)
+                .soldeRestantTtc(solde)
+                .statut(bc.getStatut())
+                .dateEmission(bc.getDateEmission())
+                .lignes(bc.getLignes() != null ? bc.getLignes().stream().map(LigneBonCommandeResponseDto::from).collect(Collectors.toList()) : List.of())
+                .createdAt(bc.getCreatedAt())
+                .updatedAt(bc.getUpdatedAt())
+                .build();
     }
 }
+

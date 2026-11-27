@@ -4,8 +4,10 @@ import com.budget.backend.budget.dto.EntiteStatistiqueCleRequestDto;
 import com.budget.backend.budget.entity.EntiteStatistiqueCle;
 import com.budget.backend.budget.repository.EntiteStatistiqueCleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
@@ -30,8 +32,9 @@ public class EntiteStatistiqueCleService {
 
     @Transactional
     public EntiteStatistiqueCle creer(EntiteStatistiqueCleRequestDto dto) {
-        if (dto.getMois() != null && repository.existsByAnneeExerciceAndMoisAndEntiteCode(dto.getAnneeExercice(), dto.getMois(), dto.getEntiteCode())) {
-            throw new RuntimeException("Une statistique existe déjà pour cette entité, ce mois et cette année.");
+        if (repository.existsByAnneeExerciceAndMoisAndEntiteCode(dto.getAnneeExercice(), dto.getMois(), dto.getEntiteCode())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Une statistique existe déjà pour cette entité et cette période.");
         }
 
         EntiteStatistiqueCle statistique = EntiteStatistiqueCle.builder()
@@ -49,6 +52,12 @@ public class EntiteStatistiqueCleService {
     public EntiteStatistiqueCle modifier(UUID id, EntiteStatistiqueCleRequestDto dto) {
         EntiteStatistiqueCle statistique = repository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Statistique introuvable avec l'ID : " + id));
+
+        if (repository.existsByAnneeExerciceAndMoisAndEntiteCodeAndIdNot(
+                dto.getAnneeExercice(), dto.getMois(), dto.getEntiteCode(), id)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Une statistique existe déjà pour cette entité et cette période.");
+        }
 
         statistique.setAnneeExercice(dto.getAnneeExercice());
         statistique.setMois(dto.getMois());
@@ -86,7 +95,11 @@ public class EntiteStatistiqueCleService {
 
     // Export CSV avec filtres
     public String exporterEnCsv(Integer annee, Integer mois, String entiteCode) {
-        List<EntiteStatistiqueCle> list = filtrer(annee, mois, entiteCode);
+        return exporterEnCsv(filtrer(annee, mois, entiteCode));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<EntiteStatistiqueCle> list) {
         StringBuilder sb = new StringBuilder();
         sb.append("ID,Année,Mois,Code Entité,Effectif Agents,Chiffre d'Affaires\n");
         for (EntiteStatistiqueCle s : list) {
@@ -102,7 +115,11 @@ public class EntiteStatistiqueCleService {
 
     // Export PDF avec filtres (OpenPDF)
     public byte[] exporterEnPdf(Integer annee, Integer mois, String entiteCode) {
-        List<EntiteStatistiqueCle> list = filtrer(annee, mois, entiteCode);
+        return exporterEnPdf(filtrer(annee, mois, entiteCode));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<EntiteStatistiqueCle> list) {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document();

@@ -1,6 +1,6 @@
 package com.budget.backend.stock.entity;
 
-import com.budget.backend.security.entity.Entite;
+import com.budget.backend.security.entity.ServiceOrganisationnel;
 import com.budget.backend.security.entity.Structure;
 import com.budget.backend.security.entity.Utilisateur;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -43,11 +43,11 @@ public class DemandeMagasin {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "service_id", nullable = false)
-    private Structure service;
+    private ServiceOrganisationnel service;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entite_code", referencedColumnName = "code", nullable = false)
-    private Entite entite;
+    @JoinColumn(name = "structure_code", referencedColumnName = "code", nullable = false)
+    private Structure structure;
 
     @Column(nullable = false, length = 255)
     private String objet;

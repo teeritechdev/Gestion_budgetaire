@@ -21,7 +21,7 @@ public class CurrentUserService {
         if (auth == null || !(auth.getPrincipal() instanceof UserDetails details)) {
             throw new StockException("Aucun utilisateur authentifié.");
         }
-        return utilisateurRepository.findByEmail(details.getUsername())
+        return utilisateurRepository.findByUsername(details.getUsername())
                 .orElseThrow(() -> new StockException("Utilisateur connecté introuvable : " + details.getUsername()));
     }
 }

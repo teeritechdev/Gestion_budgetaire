@@ -14,7 +14,7 @@ public class DemandeMagasinResponseDto {
     private String numeroDemande;
     private UtilisateurSummaryDto demandeur;
     private UUID serviceId;
-    private String entiteCode;
+    private String structureCode;
     private String objet;
     private String statut;
     private UtilisateurSummaryDto valideurN1;
@@ -31,7 +31,7 @@ public class DemandeMagasinResponseDto {
         dto.setNumeroDemande(d.getNumeroDemande());
         dto.setDemandeur(UtilisateurSummaryDto.from(d.getDemandeur()));
         dto.setServiceId(d.getService().getId());
-        dto.setEntiteCode(d.getEntite().getCode());
+        dto.setStructureCode(d.getStructure().getCode());
         dto.setObjet(d.getObjet());
         dto.setStatut(d.getStatut());
         dto.setValideurN1(UtilisateurSummaryDto.from(d.getValideurN1()));

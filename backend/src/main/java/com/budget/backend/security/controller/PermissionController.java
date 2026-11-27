@@ -21,7 +21,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/permissions")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class PermissionController {
 
     @Autowired
@@ -33,7 +32,7 @@ public class PermissionController {
     private String getUserIdFromAuth(Authentication authentication) {
         if (authentication == null || !(authentication.getPrincipal() instanceof User)) return null;
         User user = (User) authentication.getPrincipal();
-        return utilisateurRepository.findByEmail(user.getUsername())
+        return utilisateurRepository.findByUsername(user.getUsername())
                 .map(u -> u.getId().toString())
                 .orElse(null);
     }

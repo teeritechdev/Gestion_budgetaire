@@ -10,14 +10,15 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/exercices-budgetaires")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class ExerciceBudgetaireController {
 
     @Autowired
@@ -106,5 +107,13 @@ public class ExerciceBudgetaireController {
         headers.setContentType(MediaType.APPLICATION_PDF);
         headers.setContentDispositionFormData("attachment", "exercices_budgetaires_export.pdf");
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<Map<String, String>> gererErreurMetier(ResponseStatusException exception) {
+        String message = exception.getReason() == null
+                ? "L'opération sur l'exercice budgétaire a échoué."
+                : exception.getReason();
+        return ResponseEntity.status(exception.getStatusCode()).body(Map.of("message", message));
     }
 }

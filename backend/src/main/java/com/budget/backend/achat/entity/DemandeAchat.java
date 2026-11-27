@@ -1,7 +1,6 @@
 package com.budget.backend.achat.entity;
 
-import com.budget.backend.security.entity.Entite;
-import com.budget.backend.security.entity.Structure;
+import com.budget.backend.security.entity.ServiceOrganisationnel;
 import com.budget.backend.security.entity.Utilisateur;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -32,26 +31,21 @@ public class DemandeAchat {
     public static final String REJETE = "REJETE";
     public static final String COMMANDE = "COMMANDE";
 
-    // Etape de la DA approuvée, en attente de traitement par l'acheteur (hors circuit de validation)
-    public static final String ETAPE_TRAITEMENT_CSP = "TRAITEMENT_CSP";
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "code_dossier", unique = true, nullable = false, length = 50)
-    private String codeDossier; // Ex: DA-2026-0045
+    private String codeDossier;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entite_emettrice", referencedColumnName = "code", nullable = false)
-    private Entite entiteEmettrice;
+    @Column(name = "entite_emettrice", nullable = false, length = 20)
+    private String entiteEmettrice;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "entite_beneficiaire", referencedColumnName = "code", nullable = false)
-    private Entite entiteBeneficiaire;
+    @Column(name = "entite_beneficiaire", nullable = false, length = 20)
+    private String entiteBeneficiaire;
 
     @Column(name = "type_achat", nullable = false, length = 30)
-    private String typeAchat; // STOCKABLE, PRESTATION_SERVICE, INVESTISSEMENT_IMMO, TRAVAUX
+    private String typeAchat;
 
     @Column(nullable = false, length = 255)
     private String objet;
@@ -68,19 +62,20 @@ public class DemandeAchat {
     private BigDecimal montantEstimeTtc = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(length = 30)
+    @Column(nullable = false, length = 30)
     private String statut = SOUMIS;
 
+    @Builder.Default
     @Column(name = "etape_courante", length = 50)
-    private String etapeCourante;
+    private String etapeCourante = "VALIDATION_N1";
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "demandeur_id", nullable = false)
     private Utilisateur demandeur;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "direction_demandeur_id", nullable = false)
-    private Structure directionDemandeur;
+    @JoinColumn(name = "service_demandeur_id")
+    private ServiceOrganisationnel serviceDemandeur;
 
     @Column(name = "exercice_annee", nullable = false)
     private Integer exerciceAnnee;
@@ -89,15 +84,6 @@ public class DemandeAchat {
     @OneToMany(mappedBy = "demandeAchat", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<LigneDemandeAchat> lignes = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "demandeAchat", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<DossierVentilationImpact> ventilations = new ArrayList<>();
-
-    @Builder.Default
-    @OneToMany(mappedBy = "demandeAchat", cascade = CascadeType.ALL, orphanRemoval = true)
-    @OrderBy("dateDecision ASC")
-    private List<HistoriqueValidation> historique = new ArrayList<>();
-
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
@@ -105,4 +91,20 @@ public class DemandeAchat {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    public void recalculerMontants() {
+        BigDecimal totalHt = BigDecimal.ZERO;
+        if (lignes != null) {
+            for (LigneDemandeAchat l : lignes) {
+                if (l.getMontantTotalHt() != null) {
+                    totalHt = totalHt.add(l.getMontantTotalHt());
+                }
+            }
+        }
+        this.montantEstimeHt = totalHt;
+        if (this.montantEstimeTtc == null || this.montantEstimeTtc.compareTo(BigDecimal.ZERO) == 0) {
+            this.montantEstimeTtc = totalHt;
+        }
+    }
 }
+

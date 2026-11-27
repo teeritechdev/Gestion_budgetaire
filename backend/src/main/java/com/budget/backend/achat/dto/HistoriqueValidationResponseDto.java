@@ -2,15 +2,20 @@ package com.budget.backend.achat.dto;
 
 import com.budget.backend.achat.entity.HistoriqueValidation;
 import com.budget.backend.stock.dto.UtilisateurSummaryDto;
-import lombok.Data;
+import lombok.*;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class HistoriqueValidationResponseDto {
     private UUID id;
     private UUID daId;
+    private UUID instanceId;
     private String etape;
     private UtilisateurSummaryDto valideur;
     private String decision;
@@ -18,14 +23,17 @@ public class HistoriqueValidationResponseDto {
     private LocalDateTime dateDecision;
 
     public static HistoriqueValidationResponseDto from(HistoriqueValidation h) {
-        HistoriqueValidationResponseDto dto = new HistoriqueValidationResponseDto();
-        dto.setId(h.getId());
-        dto.setDaId(h.getDemandeAchat().getId());
-        dto.setEtape(h.getEtape());
-        dto.setValideur(UtilisateurSummaryDto.from(h.getValideur()));
-        dto.setDecision(h.getDecision());
-        dto.setCommentaire(h.getCommentaire());
-        dto.setDateDecision(h.getDateDecision());
-        return dto;
+        if (h == null) return null;
+        return HistoriqueValidationResponseDto.builder()
+                .id(h.getId())
+                .daId(h.getDemandeAchat() != null ? h.getDemandeAchat().getId() : null)
+                .instanceId(h.getInstanceId())
+                .etape(h.getEtape())
+                .valideur(UtilisateurSummaryDto.from(h.getValideur()))
+                .decision(h.getDecision())
+                .commentaire(h.getCommentaire())
+                .dateDecision(h.getDateDecision())
+                .build();
     }
 }
+

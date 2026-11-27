@@ -23,13 +23,17 @@ public class CustomPermissionEvaluator implements PermissionEvaluator {
         }
 
         User userDetails = (User) authentication.getPrincipal();
-        String email = userDetails.getUsername();
+        String username = userDetails.getUsername();
 
         // Récupérer l'utilisateur et son rôle en base de données
-        Utilisateur utilisateur = utilisateurRepository.findByEmail(email).orElse(null);
-        if (utilisateur == null || utilisateur.getRole() == null || utilisateur.getRole().getPermissions() == null) {
+        Utilisateur utilisateur = utilisateurRepository.findByUsername(username).orElse(null);
+        if (utilisateur == null || utilisateur.getRole() == null) {
             return false;
         }
+        if ("ADMIN_SYSTEME".equalsIgnoreCase(utilisateur.getRole().getCode())) {
+            return true;
+        }
+        if (utilisateur.getRole().getPermissions() == null) return false;
 
         String permissionDemandee = permission.toString().toUpperCase();
 

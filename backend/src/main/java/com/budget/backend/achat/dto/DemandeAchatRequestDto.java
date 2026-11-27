@@ -4,32 +4,49 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
-import lombok.Data;
+import jakarta.validation.constraints.Size;
+import lombok.*;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class DemandeAchatRequestDto {
-    // Optionnel : généré au format DA-AAAA-NNNN s'il est absent
+
     private String codeDossier;
-    @NotBlank
+
+    @NotBlank(message = "L'entité émettrice est obligatoire")
+    @Size(max = 20)
     private String entiteEmettrice;
-    @NotBlank
+
+    @NotBlank(message = "L'entité bénéficiaire est obligatoire")
+    @Size(max = 20)
     private String entiteBeneficiaire;
-    @NotBlank
-    private String typeAchat; // STOCKABLE, PRESTATION_SERVICE, INVESTISSEMENT_IMMO, TRAVAUX
-    @NotBlank
+
+    @NotBlank(message = "Le type d'achat est obligatoire")
+    @Size(max = 30)
+    private String typeAchat;
+
+    @NotBlank(message = "L'objet est obligatoire")
+    @Size(max = 255)
     private String objet;
-    @NotBlank
+
     private String justification;
-    @NotNull
-    private UUID directionDemandeurId;
-    @NotNull
+
+    private UUID serviceDemandeurId;
+
+    @NotNull(message = "L'année d'exercice est obligatoire")
     private Integer exerciceAnnee;
-    @NotEmpty
+
+    private BigDecimal montantEstimeTtc;
+
+    @NotEmpty(message = "La demande d'achat doit comporter au moins une ligne")
     @Valid
-    private List<LigneDARequestDto> lignes;
-    @Valid
-    private List<DossierVentilationRequestDto> ventilations;
+    private List<LigneDemandeAchatRequestDto> lignes;
 }
+

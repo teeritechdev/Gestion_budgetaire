@@ -30,7 +30,7 @@ public class BudgetAllocationStructure {
     private BudgetAllocationActivite budgetAllocationActivite;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "structure_id", nullable = false)
+    @JoinColumn(name = "structure_code", referencedColumnName = "code", nullable = false)
     private Structure structure;
 
     @Column(name = "montant_vote", precision = 15, scale = 2, nullable = false)

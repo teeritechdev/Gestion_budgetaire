@@ -17,7 +17,6 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/allocations-os")
-@CrossOrigin(origins = "*", maxAge = 3600)
 public class AllocationOsController {
 
     @Autowired

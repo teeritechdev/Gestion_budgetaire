@@ -2,6 +2,7 @@ package com.budget.backend.stock.service;
 
 import com.budget.backend.common.PageResponseDto;
 import com.budget.backend.common.PageUtils;
+import com.budget.backend.common.CsvUtils;
 import org.springframework.data.domain.Pageable;
 import com.budget.backend.stock.StockException;
 import com.budget.backend.stock.dto.ArticleRequestDto;
@@ -20,15 +21,32 @@ import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import com.budget.backend.stock.dto.StockKpisDto;
+import com.budget.backend.stock.entity.DemandeMagasin;
+import com.budget.backend.stock.repository.DemandeMagasinRepository;
+
 @Service
 public class ArticleService {
 
     @Autowired
     private ArticleRepository repository;
     @Autowired
+    private DemandeMagasinRepository demandeMagasinRepository;
+    @Autowired
     private AuditHelper auditHelper;
     @Autowired
     private CurrentUserService currentUserService;
+
+    @Transactional(readOnly = true)
+    public StockKpisDto obtenirKpis() {
+        return StockKpisDto.builder()
+                .totalArticles(repository.countByActifTrue())
+                .articlesEnAlerte(repository.countArticlesSousSeuil())
+                .valeurTotaleStock(repository.calculerValeurTotaleStock())
+                .demandesEnAttenteValidation(demandeMagasinRepository.countByStatut(DemandeMagasin.SOUMIS))
+                .demandesEnAttenteService(demandeMagasinRepository.countByStatutIn(List.of(DemandeMagasin.VALIDE_N1, DemandeMagasin.PARTIELLEMENT_SERVIE)))
+                .build();
+    }
 
     public Optional<ArticleResponseDto> trouverParId(UUID id) {
         return repository.findById(id).map(ArticleResponseDto::from);
@@ -108,5 +126,34 @@ public class ArticleService {
             }
             return cb.and(predicates.toArray(new jakarta.persistence.criteria.Predicate[0]));
         }, PageUtils.limiter(pageable)), ArticleResponseDto::from);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Article> listerTous(List<UUID> ids) {
+        if (ids != null && !ids.isEmpty()) {
+            return repository.findAllById(ids);
+        }
+        return repository.findAll(Sort.by(Sort.Direction.ASC, "codeArticle"));
+    }
+
+    @Transactional(readOnly = true)
+    public String exporterEnCsv(List<Article> articles) {
+        StringBuilder csv = new StringBuilder(
+                "Code_Article;Designation;Unite_Mesure;Quantite_Stock;Seuil_Reapprovisionnement;PUMP_FCFA;Valeur_Stock_FCFA;Actif;Description\n");
+        for (Article a : articles) {
+            BigDecimal pump = a.getPrixUnitaireMoyenPondere() != null ? a.getPrixUnitaireMoyenPondere() : BigDecimal.ZERO;
+            BigDecimal valeur = pump.multiply(BigDecimal.valueOf(a.getQuantiteStock() != null ? a.getQuantiteStock() : 0));
+            csv.append(CsvUtils.ligne(';',
+                    a.getCodeArticle(),
+                    a.getDesignation(),
+                    a.getUniteMesure(),
+                    a.getQuantiteStock() != null ? a.getQuantiteStock() : 0,
+                    a.getSeuilReapprovisionnement() != null ? a.getSeuilReapprovisionnement() : 0,
+                    pump,
+                    valeur,
+                    Boolean.TRUE.equals(a.getActif()) ? "oui" : "non",
+                    a.getDescription() != null ? a.getDescription() : ""));
+        }
+        return csv.toString();
     }
 }

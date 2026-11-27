@@ -32,9 +32,9 @@ public class DemandeMagasinController {
     public ResponseEntity<PageResponseDto<DemandeMagasinResponseDto>> listerOuFiltrer(
             @RequestParam(required = false) String statut,
             @RequestParam(required = false) UUID demandeurId,
-            @RequestParam(required = false) String entiteCode,
+            @RequestParam(required = false) String structureCode,
             @PageableDefault(size = 20, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        return ResponseEntity.ok(service.filtrer(statut, demandeurId, entiteCode, pageable));
+        return ResponseEntity.ok(service.filtrer(statut, demandeurId, structureCode, pageable));
     }
 
     @GetMapping("/{id}")
@@ -43,6 +43,18 @@ public class DemandeMagasinController {
         return service.trouverParId(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/{id}/pdf")
+    @PreAuthorize("hasPermission(null, 'demande_magasin.lire')")
+    public ResponseEntity<byte[]> exporterBonDeSortiePdf(@PathVariable UUID id) {
+        byte[] pdf = service.genererBonDeSortiePdf(id);
+        org.springframework.http.HttpHeaders headers = new org.springframework.http.HttpHeaders();
+        headers.setContentType(org.springframework.http.MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(org.springframework.http.ContentDisposition.inline()
+                .filename("bon_de_sortie_" + id + ".pdf")
+                .build());
+        return new ResponseEntity<>(pdf, headers, HttpStatus.OK);
     }
 
     @PostMapping

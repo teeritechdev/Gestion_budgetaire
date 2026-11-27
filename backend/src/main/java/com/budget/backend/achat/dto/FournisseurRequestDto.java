@@ -1,20 +1,35 @@
 package com.budget.backend.achat.dto;
 
-import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
-import lombok.Data;
+import jakarta.validation.constraints.Size;
+import lombok.*;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class FournisseurRequestDto {
-    // Optionnel : généré au format FOURN-AAAA-NNNN s'il est absent
+
+    @Size(max = 50)
     private String codeFournisseur;
-    @NotBlank
+
+    @NotBlank(message = "La raison sociale est obligatoire")
+    @Size(max = 200)
     private String raisonSociale;
-    @NotBlank
+
+    @NotBlank(message = "Le numéro IFU est obligatoire")
+    @Size(max = 50)
     private String ifu;
-    @Email
+
+    @Size(max = 150)
     private String email;
+
+    @Size(max = 50)
     private String telephone;
+
     private String adresse;
+
     private Boolean actif;
 }
+

@@ -1,43 +1,53 @@
 package com.budget.backend.abonnement.dto;
 
-import jakarta.validation.constraints.*;
-import lombok.Data;
+import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.UUID;
 
-@Data
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class AbonnementRequestDto {
-    // Optionnel : généré au format ABN-AAAA-NNNN s'il est absent
+
     private String codeAbonnement;
-    @NotBlank
+
+    @NotBlank(message = "L'intitulé du contrat est obligatoire")
     private String libelle;
-    @NotNull
+
+    @NotNull(message = "Le prestataire (fournisseur) est obligatoire")
     private UUID fournisseurId;
-    @NotNull
-    private UUID activiteId; // ligne budgétaire (budget_allocation_structure) imputée
-    @NotBlank
-    private String periodicite; // MENSUEL, TRIMESTRIEL, SEMESTRIEL, ANNUEL
-    @NotNull
-    @Min(1)
-    @Max(31)
-    private Integer jourFacturation; // 31 = dernier jour du mois
-    @NotNull
-    @Positive
+
+    private UUID activiteId;
+
+    @NotBlank(message = "La périodicité est obligatoire (MENSUEL, TRIMESTRIEL, SEMESTRIEL, ANNUEL)")
+    private String periodicite;
+
+    private Integer jourFacturation;
+
+    @NotNull(message = "Le montant par échéance HT est obligatoire")
+    @DecimalMin(value = "0.0", inclusive = false, message = "Le montant HT doit être supérieur à zéro")
     private BigDecimal montantEcheanceHt;
-    @NotNull
-    @Positive
+
     private BigDecimal montantEcheanceTtc;
-    @NotNull
+
+    @NotNull(message = "La date de début est obligatoire")
     private LocalDate dateDebut;
-    @NotNull
+
+    @NotNull(message = "La date de fin est obligatoire")
     private LocalDate dateFin;
+
     private Boolean taciteReconduction;
-    @PositiveOrZero
+
     private Integer preavisJours;
-    @NotNull
-    private UUID responsableId;
-    // Optionnel (par défaut ACTIF à la création). BROUILLON, ACTIF, SUSPENDU ou RESILIE.
+
     private String statut;
+
+    private UUID responsableId;
 }

@@ -17,6 +17,14 @@ public interface ArticleRepository extends JpaRepository<Article, UUID>, JpaSpec
     Optional<Article> findByCodeArticle(String codeArticle);
     boolean existsByCodeArticle(String codeArticle);
 
+    long countByActifTrue();
+
+    @Query("select count(a) from Article a where a.actif = true and a.seuilReapprovisionnement is not null and a.quantiteStock <= a.seuilReapprovisionnement")
+    long countArticlesSousSeuil();
+
+    @Query("select coalesce(sum(a.quantiteStock * a.prixUnitaireMoyenPondere), 0) from Article a where a.actif = true")
+    java.math.BigDecimal calculerValeurTotaleStock();
+
     // Verrou pessimiste : évite deux sorties simultanées qui rendraient le stock négatif
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select a from Article a where a.id = :id")

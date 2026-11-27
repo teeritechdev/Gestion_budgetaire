@@ -50,7 +50,11 @@ public class NumeroDocumentService {
         return prochain(prefixe, sequence);
     }
 
+    @jakarta.transaction.Transactional
     private String prochain(String prefixe, String sequence) {
+        try {
+            em.createNativeQuery("CREATE SEQUENCE IF NOT EXISTS " + sequence + " START 1").executeUpdate();
+        } catch (Exception ignored) {}
         Number n = (Number) em.createNativeQuery("select nextval('" + sequence + "')").getSingleResult();
         return String.format("%s-%d-%04d", prefixe, Year.now().getValue(), n.longValue());
     }

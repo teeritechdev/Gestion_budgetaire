@@ -24,7 +24,9 @@ public class EcheanceAbonnement {
 
     public static final String A_VENIR = "A_VENIR";
     public static final String BC_GENERE = "BC_GENERE";
+    public static final String BON_COMMANDE_GENERE = "BC_GENERE";
     public static final String FACTURE_RECUE = "FACTURE_RECUE";
+    public static final String FACTURE = "FACTURE_RECUE";
     public static final String PAYE = "PAYE";
     public static final String ANNULE = "ANNULE";
 
@@ -32,7 +34,7 @@ public class EcheanceAbonnement {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "abonnement_id", nullable = false)
     private Abonnement abonnement;
 
@@ -42,14 +44,15 @@ public class EcheanceAbonnement {
     @Column(name = "date_echeance", nullable = false)
     private LocalDate dateEcheance;
 
-    @Column(name = "montant_attendu_ttc", precision = 15, scale = 2, nullable = false)
+    @Column(name = "montant_attendu_ttc", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantAttenduTtc;
 
+    @Builder.Default
     @Column(name = "montant_facture_ttc", precision = 15, scale = 2)
-    private BigDecimal montantFactureTtc;
+    private BigDecimal montantFactureTtc = BigDecimal.ZERO;
 
     @Builder.Default
-    @Column(length = 20)
+    @Column(nullable = false, length = 30)
     private String statut = A_VENIR;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -66,9 +69,5 @@ public class EcheanceAbonnement {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    /** Ecart facturé - attendu (positif = surconsommation) ; null tant qu'aucune facture n'est saisie. */
-    public BigDecimal ecartTtc() {
-        return montantFactureTtc == null ? null : montantFactureTtc.subtract(montantAttenduTtc);
-    }
 }
+

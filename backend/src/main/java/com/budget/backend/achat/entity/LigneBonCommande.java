@@ -5,7 +5,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -25,12 +24,12 @@ public class LigneBonCommande {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "bc_id", nullable = false)
     private BonCommande bonCommande;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "ligne_da_id", nullable = false)
+    @JoinColumn(name = "ligne_da_id")
     private LigneDemandeAchat ligneDa;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -40,17 +39,17 @@ public class LigneBonCommande {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    // Nullables : engagements forfaitaires / abonnements
-    @Column(name = "quantite_commandee", precision = 15, scale = 3)
-    private BigDecimal quantiteCommandee;
+    @Column(name = "quantite_commandee")
+    private Integer quantiteCommandee;
 
     @Column(name = "prix_unitaire_ht", precision = 15, scale = 2)
     private BigDecimal prixUnitaireHt;
 
-    @Column(name = "montant_total_ht", precision = 15, scale = 2, nullable = false)
+    @Column(name = "montant_total_ht", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantTotalHt;
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }
+

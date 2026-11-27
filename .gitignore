@@ -18,9 +18,10 @@ build/
 *.ear
 
 # === Configuration & Secrets Spring Boot ===
-# (Décommentez si vous utilisez un application-local.properties pour vos mots de passe DB local)
-# application-local.properties
-# application-local.yml
+application-local.properties
+application-local.yml
+**/application-local.properties
+**/application-local.yml
 
 # === IDEs / Éditeurs ===
 # IntelliJ IDEA

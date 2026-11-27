@@ -1,7 +1,7 @@
 package com.budget.backend.abonnement.entity;
 
 import com.budget.backend.achat.entity.Fournisseur;
-import com.budget.backend.budget.entity.BudgetAllocationStructure;
+import com.budget.backend.budget.entity.ActiviteCatalogue;
 import com.budget.backend.security.entity.Utilisateur;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
@@ -12,6 +12,8 @@ import org.hibernate.annotations.UpdateTimestamp;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Entity
@@ -30,40 +32,36 @@ public class Abonnement {
     public static final String RESILIE = "RESILIE";
     public static final String EXPIRE = "EXPIRE";
 
-    public static final String MENSUEL = "MENSUEL";
-    public static final String TRIMESTRIEL = "TRIMESTRIEL";
-    public static final String SEMESTRIEL = "SEMESTRIEL";
-    public static final String ANNUEL = "ANNUEL";
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
     @Column(name = "code_abonnement", unique = true, nullable = false, length = 50)
-    private String codeAbonnement; // Ex: ABN-2026-0012
+    private String codeAbonnement;
 
     @Column(nullable = false, length = 255)
     private String libelle;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "fournisseur_id", nullable = false)
     private Fournisseur fournisseur;
 
-    // Ligne budgétaire imputée (équivalent de "activites_budgetaires" du MRD)
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "activite_id", nullable = false)
-    private BudgetAllocationStructure activite;
+    private ActiviteCatalogue activite;
 
-    @Column(nullable = false, length = 20)
-    private String periodicite;
+    @Builder.Default
+    @Column(nullable = false, length = 30)
+    private String periodicite = "MENSUEL"; // MENSUEL, TRIMESTRIEL, SEMESTRIEL, ANNUEL
 
+    @Builder.Default
     @Column(name = "jour_facturation", nullable = false)
-    private Integer jourFacturation; // 31 = dernier jour du mois
+    private Integer jourFacturation = 31;
 
-    @Column(name = "montant_echeance_ht", precision = 15, scale = 2, nullable = false)
+    @Column(name = "montant_echeance_ht", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantEcheanceHt;
 
-    @Column(name = "montant_echeance_ttc", precision = 15, scale = 2, nullable = false)
+    @Column(name = "montant_echeance_ttc", nullable = false, precision = 15, scale = 2)
     private BigDecimal montantEcheanceTtc;
 
     @Column(name = "date_debut", nullable = false)
@@ -76,16 +74,21 @@ public class Abonnement {
     @Column(name = "tacite_reconduction")
     private Boolean taciteReconduction = false;
 
+    @Builder.Default
     @Column(name = "preavis_jours")
-    private Integer preavisJours;
+    private Integer preavisJours = 30;
 
     @Builder.Default
-    @Column(length = 20)
-    private String statut = BROUILLON;
+    @Column(nullable = false, length = 30)
+    private String statut = ACTIF;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "responsable_id", nullable = false)
+    @JoinColumn(name = "responsable_id")
     private Utilisateur responsable;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "abonnement", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EcheanceAbonnement> echeances = new ArrayList<>();
 
     @CreationTimestamp
     @Column(name = "created_at", updatable = false)
@@ -94,15 +97,5 @@ public class Abonnement {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
-
-    /**
-     * Dernier jour pour notifier une résiliation (null si pas de préavis).
-     * Le contrat court jusqu'à la fin de la journée date_fin : un préavis de N jours doit donc être donné
-     * au plus tard le jour date_fin - N - 1. Pour l'exemple du PDF (fin 31/12/2026, préavis 60 jours),
-     * cela donne le 31/10/2026, la date que le scénario cite ; c'est aussi la plus prudente, car une alerte
-     * trop tôt ne coûte rien alors qu'une alerte trop tard fait reconduire le contrat.
-     */
-    public LocalDate dateLimitePreavis() {
-        return preavisJours == null ? null : dateFin.minusDays(preavisJours + 1L);
-    }
 }
+

@@ -1,5 +1,6 @@
 package com.budget.backend.budget.service;
 
+import com.budget.backend.common.CsvUtils;
 import com.budget.backend.budget.entity.ObjectifStrategique;
 import com.budget.backend.budget.repository.ObjectifStrategiqueRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -70,21 +71,26 @@ public class ObjectifStrategiqueService {
 
     // Export CSV avec filtres
     public String exporterEnCsv(String codeOs, String libelle, String description) {
-        List<ObjectifStrategique> list = filtrerOs(codeOs, libelle, description);
+        return exporterEnCsv(filtrerOs(codeOs, libelle, description));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public String exporterEnCsv(List<ObjectifStrategique> list) {
         StringBuilder sb = new StringBuilder();
         sb.append("ID,Code OS,Libellé,Description\n");
         for (ObjectifStrategique o : list) {
-            sb.append(o.getId()).append(",")
-                    .append("\"").append(o.getCodeOs()).append("\",")
-                    .append("\"").append(o.getLibelle() != null ? o.getLibelle().replace("\"", "\"\"") : "").append("\",")
-                    .append("\"").append(o.getDescription() != null ? o.getDescription().replace("\"", "\"\"") : "").append("\"\n");
+            sb.append(CsvUtils.ligne(',', o.getId(), o.getCodeOs(), o.getLibelle(), o.getDescription()));
         }
         return sb.toString();
     }
 
     // Export PDF avec filtres (OpenPDF)
     public byte[] exporterEnPdf(String codeOs, String libelle, String description) {
-        List<ObjectifStrategique> list = filtrerOs(codeOs, libelle, description);
+        return exporterEnPdf(filtrerOs(codeOs, libelle, description));
+    }
+
+    /** Exporte exactement la liste fournie (lignes affichées à l’écran, dans leur ordre). */
+    public byte[] exporterEnPdf(List<ObjectifStrategique> list) {
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             com.lowagie.text.Document document = new com.lowagie.text.Document();
